@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database Container
+  postgres:
+    image: postgres:15-alpine
+    container_name: bills-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bills_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C --auth-host=md5"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - bills-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bills_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Flyway Database Migration Container
+  flyway:
+    image: flyway/flyway:10-alpine
+    container_name: bills-flyway
+    environment:
+      - FLYWAY_URL=jdbc:postgresql://postgres:5432/bills_db
+      - FLYWAY_USER=postgres
+      - FLYWAY_PASSWORD=password
+      - FLYWAY_SCHEMAS=public
+      - FLYWAY_BASELINE_ON_MIGRATE=true
+      - FLYWAY_VALIDATE_ON_MIGRATE=true
+    volumes:
+      - ./migrations/sql:/flyway/sql:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bills-network
+    command: migrate
+    restart: "no"  # Run once and exit
+
+  # Bills API Container
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: bills-api
+    restart: unless-stopped
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=bills_db
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/bills_db?schema=public
+      - PORT=3000
+      - NODE_ENV=production
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+    networks:
+      - bills-network
+    volumes:
+      - ./api/src:/app/src:ro  # For development only - remove in production
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: bills-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - bills-network
+    profiles:
+      - admin  # Only start when using 'admin' profile
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  bills-network:
+    driver: bridge

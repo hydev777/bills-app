@@ -1,0 +1,40 @@
+{
+  "name": "bills-api",
+  "version": "1.0.0",
+  "description": "Bills management API",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest --config tests/jest.config.js",
+    "test:watch": "jest --watch --config tests/jest.config.js",
+    "test:coverage": "jest --coverage --config tests/jest.config.js",
+    "test:routes": "jest tests/routes --config tests/jest.config.js",
+    "test:services": "jest tests/services --config tests/jest.config.js",
+    "test:integration": "jest tests/integration --config tests/jest.config.js",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "@prisma/client": "^5.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "helmet": "^7.0.0",
+    "express-rate-limit": "^6.10.0",
+    "joi": "^17.9.2",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "prisma": "^5.6.0",
+    "nodemon": "^3.0.1",
+    "jest": "^29.6.2",
+    "supertest": "^6.3.3"
+  },
+  "keywords": ["bills", "api", "nodejs", "express"],
+  "author": "",
+  "license": "MIT"
+}
