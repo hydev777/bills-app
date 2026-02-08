@@ -24,29 +24,25 @@ const authenticateToken = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     
-    // Check if user still exists
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {
         id: true,
         username: true,
         email: true,
+        organizationId: true,
         role: true,
         createdAt: true
       }
     });
 
     if (!user) {
-      return res.status(401).json({ 
-        error: 'Access denied', 
-        message: 'User not found' 
-      });
+      return res.status(401).json({ error: 'Access denied', message: 'User not found' });
     }
 
-    // Add user info to request object
     req.user = user;
     req.userId = user.id;
-    
+    req.organizationId = user.organizationId;
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);
@@ -86,17 +82,18 @@ const optionalAuth = async (req, res, next) => {
     if (!token) {
       req.user = null;
       req.userId = null;
+      req.organizationId = null;
       return next();
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {
         id: true,
         username: true,
         email: true,
+        organizationId: true,
         role: true,
         createdAt: true
       }
@@ -104,12 +101,12 @@ const optionalAuth = async (req, res, next) => {
 
     req.user = user || null;
     req.userId = user ? user.id : null;
-    
+    req.organizationId = user ? user.organizationId : null;
     next();
   } catch (error) {
-    // If token is invalid, continue without user info
     req.user = null;
     req.userId = null;
+    req.organizationId = null;
     next();
   }
 };
@@ -177,47 +174,34 @@ const authenticateBranchAccess = async (req, res, next) => {
       });
     }
     
-    // Check if user still exists
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {
         id: true,
         username: true,
         email: true,
+        organizationId: true,
         createdAt: true
       }
     });
 
     if (!user) {
-      return res.status(401).json({ 
-        error: 'Access denied', 
-        message: 'User not found' 
-      });
+      return res.status(401).json({ error: 'Access denied', message: 'User not found' });
     }
 
-    // Check if user can access the specified branch
     const canAccess = await BranchService.canUserLoginToBranch(user.id, branchId);
-    
     if (!canAccess) {
-      return res.status(403).json({ 
-        error: 'Access denied', 
-        message: 'You do not have permission to access this branch' 
-      });
+      return res.status(403).json({ error: 'Access denied', message: 'You do not have permission to access this branch' });
     }
 
-    // Get branch information
-    const branch = await BranchService.getBranchById(branchId);
-    
+    const branch = await BranchService.getBranchById(branchId, user.organizationId);
     if (!branch) {
-      return res.status(404).json({ 
-        error: 'Not found', 
-        message: 'Branch not found' 
-      });
+      return res.status(404).json({ error: 'Not found', message: 'Branch not found' });
     }
 
-    // Add user and branch info to request object
     req.user = user;
     req.userId = user.id;
+    req.organizationId = user.organizationId;
     req.branch = branch;
     req.branchId = branch.id;
     

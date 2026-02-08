@@ -8,6 +8,7 @@ const billRoutes = require('./routes/bills');
 const userRoutes = require('./routes/users');
 const itemRoutes = require('./routes/items');
 const billItemRoutes = require('./routes/bill-items');
+const itbisRateRoutes = require('./routes/itbis-rates');
 const branchRoutes = require('./routes/branches');
 const privilegeRoutes = require('./routes/privileges');
 const { connectDB } = require('./config/prisma');
@@ -36,6 +37,7 @@ app.use('/api/bills', billRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/bill-items', billItemRoutes);
+app.use('/api/itbis-rates', itbisRateRoutes);
 app.use('/api/branches', branchRoutes);
 app.use('/api/privileges', privilegeRoutes);
 

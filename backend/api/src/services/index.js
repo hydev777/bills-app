@@ -6,6 +6,7 @@ const BillItemService = require('./BillItemService');
 const BranchService = require('./BranchService');
 const ItemService = require('./ItemService');
 const ItemCategoryService = require('./ItemCategoryService');
+const ItbisRateService = require('./ItbisRateService');
 const PrivilegeService = require('./PrivilegeService');
 const UserService = require('./UserService');
 
@@ -15,6 +16,7 @@ module.exports = {
   BranchService,
   ItemService,
   ItemCategoryService,
+  ItbisRateService,
   PrivilegeService,
   UserService
 };

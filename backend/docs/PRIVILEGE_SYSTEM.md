@@ -74,7 +74,12 @@ The system comes with the following default privileges:
 - `GET /api/privileges/user/:userId` - Get user's privileges (requires `privilege.read`)
 - `POST /api/privileges/grant` - Grant privilege to user (requires `privilege.grant`)
 - `POST /api/privileges/revoke` - Revoke privilege from user (requires `privilege.revoke`)
+- `POST /api/privileges/assign-role` - Assign role **cajero** or **administrador** to a user (requires `privilege.grant`). Body: `{ "userId": number, "role": "cajero" | "administrador" }`. Replaces all current privileges with the role's set.
 - `GET /api/privileges/:id/users` - Get users with specific privilege (requires `privilege.read`)
+
+### Roles predefinidos
+- **Cajero**: solo puede crear facturas y ver facturas/ítems. Tiene: `bill.create`, `bill.read`, `item.read`. No puede editar ni borrar facturas, ni gestionar ítems/categorías ni usuarios/privilegios.
+- **Administrador**: puede hacer todo. Se le asignan todos los privilegios existentes en el sistema (branch.*, user.*, bill.*, item.*, privilege.*).
 
 ### System Initialization
 - `POST /api/privileges/initialize` - Initialize default privileges (requires `privilege.create`)

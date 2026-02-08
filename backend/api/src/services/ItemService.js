@@ -11,12 +11,12 @@ class ItemService {
    * @returns {Promise<Object>} Items with pagination info
    */
   async getAllItems(filters = {}) {
-    const { category, search, limit = 50, offset = 0 } = filters;
+    const { organization_id, category, search, limit = 50, offset = 0 } = filters;
 
-    const where = {};
-    if (category) {
-      where.categoryId = parseInt(category);
-    }
+    if (!organization_id) throw new Error('Organization ID is required');
+
+    const where = { organizationId: parseInt(organization_id) };
+    if (category) where.categoryId = parseInt(category);
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -27,6 +27,7 @@ class ItemService {
     const items = await prisma.item.findMany({
       where,
       include: {
+        itbisRate: { select: { id: true, name: true, percentage: true } },
         billItems: {
           select: {
             id: true,
@@ -64,10 +65,11 @@ class ItemService {
    * @param {number} id - Item ID
    * @returns {Promise<Object|null>} Item with related data or null if not found
    */
-  async getItemById(id) {
-    return await prisma.item.findUnique({
-      where: { id: parseInt(id) },
+  async getItemById(id, organizationId) {
+    return await prisma.item.findFirst({
+      where: { id: parseInt(id), organizationId: parseInt(organizationId) },
       include: {
+        itbisRate: { select: { id: true, name: true, percentage: true } },
         billItems: {
           include: {
             bill: {
@@ -98,36 +100,43 @@ class ItemService {
    * @returns {Promise<Object>} Created item
    */
   async createItem(itemData) {
-    const { name, description, unit_price, category_id } = itemData;
+    const { organization_id, name, description, unit_price, category_id, itbis_rate_id } = itemData;
+
+    if (!organization_id) throw new Error('Organization ID is required');
+    if (!itbis_rate_id) throw new Error('ITBIS rate is required');
 
     const existingItem = await prisma.item.findFirst({
       where: {
+        organizationId: parseInt(organization_id),
         name: { equals: name, mode: 'insensitive' }
       }
     });
+    if (existingItem) throw new Error('Item with this name already exists in this organization');
 
-    if (existingItem) {
-      throw new Error('Item with this name already exists');
-    }
+    const itbisRate = await prisma.itbisRate.findUnique({
+      where: { id: parseInt(itbis_rate_id) }
+    });
+    if (!itbisRate) throw new Error('ITBIS rate not found');
 
     if (category_id) {
-      const category = await prisma.itemCategory.findUnique({
-        where: { id: parseInt(category_id) }
+      const category = await prisma.itemCategory.findFirst({
+        where: { id: parseInt(category_id), organizationId: parseInt(organization_id) }
       });
-      if (!category) {
-        throw new Error('Category not found');
-      }
+      if (!category) throw new Error('Category not found');
     }
 
     return await prisma.item.create({
       data: {
+        organizationId: parseInt(organization_id),
         name,
         description: description || null,
         unitPrice: unit_price,
-        categoryId: category_id || null
+        categoryId: category_id || null,
+        itbisRateId: parseInt(itbis_rate_id)
       },
       include: {
         category: true,
+        itbisRate: { select: { id: true, name: true, percentage: true } },
         _count: {
           billItems: true
         }
@@ -141,36 +150,37 @@ class ItemService {
    * @param {Object} updateData - Update data
    * @returns {Promise<Object>} Updated item
    */
-  async updateItem(id, updateData) {
-    const { name, description, unit_price, category_id } = updateData;
+  async updateItem(id, organizationId, updateData) {
+    const { name, description, unit_price, category_id, itbis_rate_id } = updateData;
 
-    const existingItem = await prisma.item.findUnique({
-      where: { id: parseInt(id) }
+    const existingItem = await prisma.item.findFirst({
+      where: { id: parseInt(id), organizationId: parseInt(organizationId) }
     });
+    if (!existingItem) throw new Error('Item not found');
 
-    if (!existingItem) {
-      throw new Error('Item not found');
+    if (itbis_rate_id !== undefined) {
+      const itbisRate = await prisma.itbisRate.findUnique({
+        where: { id: parseInt(itbis_rate_id) }
+      });
+      if (!itbisRate) throw new Error('ITBIS rate not found');
     }
 
     if (category_id !== undefined && category_id !== null) {
-      const category = await prisma.itemCategory.findUnique({
-        where: { id: parseInt(category_id) }
+      const category = await prisma.itemCategory.findFirst({
+        where: { id: parseInt(category_id), organizationId: parseInt(organizationId) }
       });
-      if (!category) {
-        throw new Error('Category not found');
-      }
+      if (!category) throw new Error('Category not found');
     }
 
     if (name && name.toLowerCase() !== existingItem.name.toLowerCase()) {
       const duplicateItem = await prisma.item.findFirst({
         where: {
+          organizationId: parseInt(organizationId),
           name: { equals: name, mode: 'insensitive' },
           id: { not: parseInt(id) }
         }
       });
-      if (duplicateItem) {
-        throw new Error('Item with this name already exists');
-      }
+      if (duplicateItem) throw new Error('Item with this name already exists in this organization');
     }
 
     const updateFields = {};
@@ -178,12 +188,14 @@ class ItemService {
     if (description !== undefined) updateFields.description = description || null;
     if (unit_price !== undefined) updateFields.unitPrice = unit_price;
     if (category_id !== undefined) updateFields.categoryId = category_id || null;
+    if (itbis_rate_id !== undefined) updateFields.itbisRateId = parseInt(itbis_rate_id);
 
     return await prisma.item.update({
       where: { id: parseInt(id) },
       data: updateFields,
       include: {
         category: true,
+        itbisRate: { select: { id: true, name: true, percentage: true } },
         billItems: {
           select: {
             id: true,
@@ -242,9 +254,9 @@ class ItemService {
    * @param {number} id - Item ID
    * @returns {Promise<Object>} Item usage statistics
    */
-  async getItemStats(id) {
-    const item = await prisma.item.findUnique({
-      where: { id: parseInt(id) },
+  async getItemStats(id, organizationId) {
+    const item = await prisma.item.findFirst({
+      where: { id: parseInt(id), organizationId: parseInt(organizationId) },
       include: {
         billItems: {
           include: {

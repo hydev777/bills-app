@@ -11,21 +11,24 @@ class ItemCategoryService {
    * @returns {Promise<Object>} Categories with pagination info
    */
   async getAllCategories(options = {}) {
-    const { limit = 50, offset = 0, includeItemCount = false } = options;
+    const { organization_id, limit = 50, offset = 0, includeItemCount = false } = options;
+
+    if (!organization_id) throw new Error('Organization ID is required');
 
     const include = {};
-    if (includeItemCount) {
-      include._count = { items: true };
-    }
+    if (includeItemCount) include._count = { items: true };
+
+    const where = { organizationId: parseInt(organization_id) };
 
     const categories = await prisma.itemCategory.findMany({
+      where,
       include,
       orderBy: { name: 'asc' },
       take: parseInt(limit),
       skip: parseInt(offset)
     });
 
-    const total = await prisma.itemCategory.count();
+    const total = await prisma.itemCategory.count({ where });
 
     return {
       categories,
@@ -42,16 +45,12 @@ class ItemCategoryService {
    * @param {boolean} includeItems - Include related items
    * @returns {Promise<Object|null>} Category with related data or null if not found
    */
-  async getCategoryById(id, includeItems = false) {
-    const include = {
-      _count: { items: true }
-    };
-    if (includeItems) {
-      include.items = { orderBy: { name: 'asc' } };
-    }
+  async getCategoryById(id, organizationId, includeItems = false) {
+    const include = { _count: { items: true } };
+    if (includeItems) include.items = { orderBy: { name: 'asc' } };
 
-    return await prisma.itemCategory.findUnique({
-      where: { id: parseInt(id) },
+    return await prisma.itemCategory.findFirst({
+      where: { id: parseInt(id), organizationId: parseInt(organizationId) },
       include
     });
   }
@@ -61,9 +60,9 @@ class ItemCategoryService {
    * @param {string} name - Category name
    * @returns {Promise<Object|null>} Category or null if not found
    */
-  async getCategoryByName(name) {
-    return await prisma.itemCategory.findUnique({
-      where: { name },
+  async getCategoryByName(name, organizationId) {
+    return await prisma.itemCategory.findFirst({
+      where: { name, organizationId: parseInt(organizationId) },
       include: { _count: { items: true } }
     });
   }
@@ -77,24 +76,22 @@ class ItemCategoryService {
    * @returns {Promise<Object>} Created category
    */
   async createCategory(categoryData) {
-    const { name, description } = categoryData;
+    const { organization_id, name, description } = categoryData;
 
-    const existingCategory = await prisma.itemCategory.findUnique({
-      where: { name }
+    if (!organization_id) throw new Error('Organization ID is required');
+
+    const existingCategory = await prisma.itemCategory.findFirst({
+      where: { name, organizationId: parseInt(organization_id) }
     });
-
-    if (existingCategory) {
-      throw new Error('Category with this name already exists');
-    }
+    if (existingCategory) throw new Error('Category with this name already exists in this organization');
 
     return await prisma.itemCategory.create({
       data: {
+        organizationId: parseInt(organization_id),
         name,
         description: description || null
       },
-      include: {
-        _count: { items: true }
-      }
+      include: { _count: { items: true } }
     });
   }
 
@@ -104,24 +101,19 @@ class ItemCategoryService {
    * @param {Object} updateData - Update data
    * @returns {Promise<Object>} Updated category
    */
-  async updateCategory(id, updateData) {
+  async updateCategory(id, organizationId, updateData) {
     const { name, description } = updateData;
 
-    const existingCategory = await prisma.itemCategory.findUnique({
-      where: { id: parseInt(id) }
+    const existingCategory = await prisma.itemCategory.findFirst({
+      where: { id: parseInt(id), organizationId: parseInt(organizationId) }
     });
-
-    if (!existingCategory) {
-      throw new Error('Category not found');
-    }
+    if (!existingCategory) throw new Error('Category not found');
 
     if (name && name !== existingCategory.name) {
-      const duplicate = await prisma.itemCategory.findUnique({
-        where: { name }
+      const duplicate = await prisma.itemCategory.findFirst({
+        where: { name, organizationId: parseInt(organizationId) }
       });
-      if (duplicate) {
-        throw new Error('Category with this name already exists');
-      }
+      if (duplicate) throw new Error('Category with this name already exists in this organization');
     }
 
     const updateFields = {};
@@ -143,17 +135,16 @@ class ItemCategoryService {
    * @param {number} organizationId - Organization ID (for security)
    * @returns {Promise<Object>} Deleted category
    */
-  async deleteCategory(id) {
-    const existingCategory = await prisma.itemCategory.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        _count: { items: true }
-      }
+  async deleteCategory(id, organizationId) {
+    const existingCategory = await prisma.itemCategory.findFirst({
+
+      where: { id: parseInt(id), organizationId: parseInt(organizationId) },
+
+      include: { _count: { items: true } }
+
     });
 
-    if (!existingCategory) {
-      throw new Error('Category not found');
-    }
+    if (!existingCategory) throw new Error('Category not found');
 
     if (existingCategory._count.items > 0) {
       throw new Error('Cannot delete category that is being used by items');
@@ -170,9 +161,9 @@ class ItemCategoryService {
    * @param {number} organizationId - Organization ID (for security)
    * @returns {Promise<Object>} Category usage statistics
    */
-  async getCategoryStats(id) {
-    const category = await prisma.itemCategory.findUnique({
-      where: { id: parseInt(id) },
+  async getCategoryStats(id, organizationId) {
+    const category = await prisma.itemCategory.findFirst({
+      where: { id: parseInt(id), organizationId: parseInt(organizationId) },
       include: {
         items: {
           include: {
@@ -224,24 +215,21 @@ class ItemCategoryService {
    * @param {number} toCategoryId - Target category ID
    * @returns {Promise<Object>} Update result
    */
-  async moveItemsToCategory(fromCategoryId, toCategoryId) {
-    // Verify both categories exist
+  async moveItemsToCategory(fromCategoryId, toCategoryId, organizationId) {
     const [fromCategory, toCategory] = await Promise.all([
-      prisma.itemCategory.findUnique({ where: { id: parseInt(fromCategoryId) } }),
-      prisma.itemCategory.findUnique({ where: { id: parseInt(toCategoryId) } })
+      prisma.itemCategory.findFirst({
+        where: { id: parseInt(fromCategoryId), organizationId: parseInt(organizationId) }
+      }),
+      prisma.itemCategory.findFirst({
+        where: { id: parseInt(toCategoryId), organizationId: parseInt(organizationId) }
+      })
     ]);
 
-    if (!fromCategory) {
-      throw new Error('Source category not found');
-    }
+    if (!fromCategory) throw new Error('Source category not found');
+    if (!toCategory) throw new Error('Target category not found');
 
-    if (!toCategory) {
-      throw new Error('Target category not found');
-    }
-
-    // Update all items from source category to target category
     const result = await prisma.item.updateMany({
-      where: { categoryId: parseInt(fromCategoryId) },
+      where: { categoryId: parseInt(fromCategoryId), organizationId: parseInt(organizationId) },
       data: { categoryId: parseInt(toCategoryId) }
     });
 

@@ -4,16 +4,19 @@ A containerized backend application for managing bills and payments, built with 
 
 ## 🚀 Features
 
-- **Bill Management**: Create, read, update, and delete bills (per user)
+- **Bill Management**: Create, read, update, and delete bills (per organization). Each bill has a unique **public ID** (UUID) and a **status** (draft, issued, paid, cancelled).
 - **User Authentication**: Register and login with JWT tokens
-- **Item Management**: Global catalog of items with categories
+- **Organizations**: Multi-tenant; users, bills, items, and branches are scoped by organization. Header `X-Organization-Id` required for API calls.
+- **Item Management**: Global catalog of items with categories. Each item has a mandatory **ITBIS rate** (tax percentage, e.g. 18% or 0%).
+- **ITBIS Rates**: Table of tax percentages (e.g. 18%, 0%). Endpoints: `GET /api/itbis-rates`.
 - **Bill Details**: Link items to bills with quantities and prices
 - **Branches**: Manage branches (sucursales) and user–branch access
-- **Privileges**: Role-based authorization (branch, user, bill, item, privilege)
+- **Invoicing basics**: See [docs/FACTURACION_BASICA.md](docs/FACTURACION_BASICA.md) for what’s included and what’s missing. Bill status and ITBIS per product are implemented.
+- **Privileges**: Role-based authorization (branch, user, bill, item, privilege). Predefined roles: **Cajero** (create/read bills only), **Administrador** (all privileges). See [docs/PRIVILEGE_SYSTEM.md](docs/PRIVILEGE_SYSTEM.md).
 - **Statistics**: Bill summaries, item/category stats
 - **Containerized**: Separate Docker containers for API and database
 - **Prisma ORM**: Type-safe database access
-- **Database Migrations**: Flyway migrations (V1–V7)
+- **Database Migrations**: Flyway migrations (V1–V11, including organizations, bill public_id, bill status, itbis_rates)
 
 ## 📁 Project Structure
 
@@ -26,12 +29,14 @@ bills/
 │   │   ├── config/
 │   │   │   └── prisma.js          # Prisma client configuration
 │   │   ├── middleware/
-│   │   │   └── auth.js            # Authentication middleware
+│   │   │   ├── auth.js            # Authentication middleware
+│   │   │   └── organization.js   # Organization scope (X-Organization-Id)
 │   │   ├── routes/
 │   │   │   ├── bills.js           # Bill management endpoints
 │   │   │   ├── users.js           # User authentication endpoints
 │   │   │   ├── items.js           # Item management endpoints
 │   │   │   ├── bill-items.js      # Bill items endpoints
+│   │   │   ├── itbis-rates.js     # ITBIS (tax) rates endpoints
 │   │   │   ├── branches.js        # Branch (sucursal) endpoints
 │   │   │   └── privileges.js      # Privilege-based authorization
 │   │   ├── services/
@@ -40,6 +45,7 @@ bills/
 │   │   │   ├── ItemService.js     # Item business logic
 │   │   │   ├── BillItemService.js # Bill item business logic
 │   │   │   ├── ItemCategoryService.js # Item category logic
+│   │   │   ├── ItbisRateService.js # ITBIS rates (read-only)
 │   │   │   ├── BranchService.js   # Branch logic
 │   │   │   └── PrivilegeService.js # Privilege logic
 │   │   └── server.js              # Main application server
@@ -60,7 +66,11 @@ bills/
 │   │   ├── V3__Add_privilege_system.sql
 │   │   ├── V4__Add_organization_system.sql   # Reverted by V7
 │   │   ├── V6__Add_company_settings.sql      # Reverted by V7
-│   │   └── V7__Revert_organization_system.sql # Current schema (no org/SaaS)
+│   │   ├── V7__Revert_organization_system.sql
+│   │   ├── V8__Add_organizations.sql          # Organizations (multi-tenant)
+│   │   ├── V9__Add_bill_public_id.sql         # Unique public UUID per bill
+│   │   ├── V10__Add_bill_status.sql            # Bill status (draft/issued/paid/cancelled)
+│   │   └── V11__Add_itbis_rates.sql            # ITBIS rates + items.itbis_rate_id
 │   └── README.md                  # Migration documentation
 ├── docs/                          # Project documentation
 ├── docker-compose.yml             # Container orchestration
@@ -201,18 +211,20 @@ For detailed API documentation, endpoints, usage examples, and development infor
 ### Quick API Reference
 
 - **Base URL**: http://localhost:3000/api
-- **Authentication**: JWT tokens required for protected endpoints
+- **Authentication**: JWT tokens required for protected endpoints (`Authorization: Bearer <token>`)
+- **Organization**: Send `X-Organization-Id` header for org-scoped endpoints (bills, items, bill-items, itbis-rates, etc.)
 - **Content-Type**: application/json for all requests
 - **Health Check**: http://localhost:3000/health
 
 ### Main Endpoints
 
 - **Authentication**: `/api/users/register`, `/api/users/login`, `/api/users/login-branch`
-- **Bills**: `/api/bills` (GET, POST, PUT, DELETE), `/api/bills/stats/summary`
-- **Items**: `/api/items` (GET, POST, PUT, DELETE), `/api/items/categories`, `/api/items/:id/stats`
-- **Bill Items**: `/api/bill-items` (GET, POST, PUT, DELETE), `/api/bill-items/stats/summary`
+- **Bills**: `/api/bills` (GET, POST, PUT, DELETE), `/api/bills/stats/summary`, `/api/bills/public/:publicId`. Query: `?status=draft|issued|paid|cancelled`, `?user_id=`
+- **Items**: `/api/items` (GET, POST, PUT, DELETE), `/api/items/categories`, `/api/items/:id/stats`. Create/update require `itbis_rate_id`.
+- **Bill Items**: `/api/bill-items` (GET, POST, PUT, DELETE), `/api/bill-items/stats/summary`, `/api/bill-items/bill/:bill_id`, `/api/bill-items/item/:item_id`
+- **ITBIS Rates**: `/api/itbis-rates` (GET list), `/api/itbis-rates/:id` (GET one). Used for product tax percentage (e.g. 18%, 0%).
 - **Branches**: `/api/branches` (GET, POST, PUT, DELETE), `/api/branches/user/:userId`
-- **Privileges**: `/api/privileges` (CRUD), `/api/privileges/grant`, `/api/privileges/revoke`
+- **Privileges**: `/api/privileges` (CRUD), `/api/privileges/grant`, `/api/privileges/revoke`, `/api/privileges/assign-role` (body: `userId`, `role`: `cajero` | `administrador`)
 
 ## 🛠️ Development Commands (Makefile)
 
@@ -287,68 +299,50 @@ make prod-down          # Stop production services
 
 ## 🗄️ Database Schema
 
-The application uses PostgreSQL with Prisma ORM. The schema is defined in `api/prisma/schema.prisma` and managed through Flyway migrations (V1–V7). The current schema does **not** use organizations or multi-tenant/SaaS; it was reverted via `V7__Revert_organization_system.sql`.
+The application uses PostgreSQL with Prisma ORM. The schema is defined in `api/prisma/schema.prisma` and managed through Flyway migrations (V1–V11). The current schema uses **organizations** (V8) for multi-tenant scope; bills, items, and users belong to an organization.
+
+### Organizations Table (`organizations`)
+- `id` (Primary Key), `name` (VARCHAR(100)), `created_at`, `updated_at`
 
 ### Users Table (`users`)
-- `id` (Primary Key, Auto-increment)
-- `username` (Unique, VARCHAR(50))
-- `email` (Unique, VARCHAR(100))
-- `password_hash` (VARCHAR(255))
-- `role` (VARCHAR(50), default: `user`)
-- `created_at`, `updated_at` (Timestamps with auto-update triggers)
+- `id` (Primary Key), `organization_id` (FK → organizations), `username`, `email`, `password_hash`, `role`
+- Unique per org: `(organization_id, email)`, `(organization_id, username)`
 
 ### Bills Table (`bills`)
-- `id` (Primary Key, Auto-increment)
-- `user_id` (Foreign Key → users.id, CASCADE DELETE)
-- `title` (VARCHAR(100))
-- `description` (TEXT, Optional)
-- `amount` (DECIMAL(10,2))
-- `created_at`, `updated_at` (Timestamps with auto-update triggers)
+- `id` (Primary Key), `public_id` (UUID, unique), `organization_id`, `user_id` (creator)
+- `title`, `description`, `amount`, **`status`** (VARCHAR(20): draft, issued, paid, cancelled; default: draft)
+- `created_at`, `updated_at`
 
-**Indexes**: user_id
+**Indexes**: organization_id, user_id, status, public_id
+
+### ITBIS Rates Table (`itbis_rates`)
+- `id` (Primary Key), `name` (VARCHAR(50)), **`percentage`** (DECIMAL(5,2), unique), `created_at`, `updated_at`
+- Seeded with 18% and 0%. Products reference one rate (mandatory).
 
 ### Item Categories Table (`item_categories`)
-- `id` (Primary Key, Auto-increment)
-- `name` (Unique, VARCHAR(50))
-- `description` (TEXT, Optional)
-- `created_at`, `updated_at` (Timestamps with auto-update triggers)
-
-**Indexes**: name
+- `id`, `organization_id`, `name` (unique per org), `description`, `created_at`, `updated_at`
 
 ### Items Table (`items`)
-- `id` (Primary Key, Auto-increment)
-- `name` (VARCHAR(100))
-- `description` (TEXT, Optional)
-- `unit_price` (DECIMAL(10,2))
-- `category_id` (Foreign Key → item_categories.id, SET NULL)
-- `created_at`, `updated_at` (Timestamps with auto-update triggers)
+- `id`, `organization_id`, `name`, `description`, `unit_price`, `category_id` (optional), **`itbis_rate_id`** (FK → itbis_rates, required)
+- `created_at`, `updated_at`
 
-**Indexes**: category_id
+**Indexes**: organization_id, category_id, itbis_rate_id
 
 ### Bill Details Table (`bill_details`)
-- `id` (Primary Key, Auto-increment)
-- `bill_id` (Foreign Key → bills.id, CASCADE DELETE)
-- `item_id` (Foreign Key → items.id, CASCADE DELETE)
-- `quantity` (INTEGER, Default: 1)
-- `unit_price` (DECIMAL(10,2))
-- `total_price` (DECIMAL(10,2))
-- `notes` (TEXT, Optional)
-- `created_at`, `updated_at` (Timestamps with auto-update triggers)
-
-**Constraints**: Unique(bill_id, item_id)  
-**Indexes**: bill_id, item_id
+- `id`, `bill_id`, `item_id`, `quantity` (default 1), `unit_price`, `total_price`, `notes`, `created_at`, `updated_at`
+- Unique(bill_id, item_id)
 
 ### Additional Tables (V2, V3)
-- **branches**: Branch (sucursal) data; `code` unique.
+- **branches**: Branch (sucursal) data; `organization_id`, `code` unique per org.
 - **user_branches**: User–branch access (is_primary, can_login).
 - **privileges**: Resource/action permissions (e.g. `branch.create`, `bill.read`).
-- **user_privileges**: User–privilege assignments (granted_by, expires_at).
+- **user_privileges**: User–privilege assignments (granted_by, expires_at, is_active).
 
 ### Database Features
-- **Triggers**: Auto-update `updated_at` timestamps on all tables
+- **Triggers**: Auto-update `updated_at` on all tables
 - **Cascading Deletes**: Bills and bill items removed when parent records are deleted
-- **Performance**: Indexes on user_id, category_id, bill_id, item_id, and unique constraints
-- **Data Integrity**: Foreign keys and unique constraints
+- **Organizations**: Data scoped by `organization_id`; API requires `X-Organization-Id` header
+- **Data Integrity**: Foreign keys, unique constraints, and indexes as above
 
 ## 🔒 Environment Variables
 
@@ -530,8 +524,8 @@ make up
    - Use `make admin` to start with pgAdmin
 
 2. **Database Management**:
-   - Schema changes are managed through Flyway migrations (V1–V7)
-   - Run migrations in order; V7 reverts the organization/SaaS system (no multi-tenant)
+   - Schema changes are managed through Flyway migrations (V1–V11)
+   - V8 adds organizations; V9 adds bill public_id; V10 adds bill status; V11 adds itbis_rates and items.itbis_rate_id
    - Use `make db-shell` to connect to PostgreSQL
    - Use `make db-studio` to open Prisma Studio
 

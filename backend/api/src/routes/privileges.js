@@ -24,6 +24,11 @@ const revokePrivilegeSchema = Joi.object({
   privilegeId: Joi.number().integer().positive().required()
 });
 
+const assignRoleSchema = Joi.object({
+  userId: Joi.number().integer().positive().required(),
+  role: Joi.string().valid('cajero', 'administrador').required()
+});
+
 // GET /api/privileges - Get all privileges (requires privilege.read)
 router.get('/', authenticateToken, requirePrivilege('privilege', 'read'), async (req, res) => {
   try {
@@ -214,6 +219,25 @@ router.post('/revoke', authenticateToken, revokePrivilege, async (req, res) => {
   } catch (error) {
     console.error('Error revoking privilege:', error);
     res.status(500).json({ error: 'Failed to revoke privilege' });
+  }
+});
+
+// POST /api/privileges/assign-role - Assign role (cajero | administrador) to user (requires privilege.grant)
+router.post('/assign-role', authenticateToken, requirePrivilege('privilege', 'grant'), async (req, res) => {
+  try {
+    const { error, value } = assignRoleSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ error: 'Validation error', details: error.details.map(d => d.message) });
+    }
+    const result = await PrivilegeService.assignRole(value.userId, value.role, req.userId);
+    res.json({
+      message: `Role '${result.role}' assigned successfully`,
+      ...result
+    });
+  } catch (error) {
+    console.error('Error assigning role:', error);
+    if (error.message?.includes('Invalid role')) return res.status(400).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to assign role' });
   }
 });
 

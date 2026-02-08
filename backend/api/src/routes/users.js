@@ -3,9 +3,16 @@ const router = express.Router();
 const Joi = require('joi');
 const { UserService } = require('../services');
 const { authenticateToken, validateUserAccess } = require('../middleware/auth');
+const { validateOrganization, requireOwnerOrAdmin } = require('../middleware/organization');
 
-// Validation schemas
 const userSchema = Joi.object({
+  username: Joi.string().alphanum().min(3).max(50).required(),
+  email: Joi.string().email().required(),
+  password: Joi.string().min(6).required(),
+  organizationName: Joi.string().max(100).optional()
+});
+
+const createUserSchema = Joi.object({
   username: Joi.string().alphanum().min(3).max(50).required(),
   email: Joi.string().email().required(),
   password: Joi.string().min(6).required()
@@ -38,7 +45,7 @@ router.post('/register', async (req, res) => {
     res.status(201).json(result);
   } catch (error) {
     console.error('Error creating user:', error);
-    if (error.message === 'User already exists with this email or username') {
+    if (error.message?.includes('User already exists') || error.message?.includes('organization')) {
       return res.status(400).json({ error: error.message });
     }
     res.status(500).json({ error: 'Failed to create user' });
@@ -97,46 +104,71 @@ router.post('/login-branch', async (req, res) => {
 // GET /api/users/profile - Get user profile (requires authentication)
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
-    // User info is already available from middleware
     const user = await UserService.getUserById(req.userId);
-    res.json({
-      ...user,
-      total_bills: user._count.bills
-    });
+    res.json({ ...user, total_bills: user._count?.bills ?? 0 });
   } catch (error) {
     console.error('Error fetching user profile:', error);
     res.status(500).json({ error: 'Failed to fetch profile' });
   }
 });
 
-// GET /api/users/:id/bills - Get all bills for a user
-router.get('/:id/bills', authenticateToken, validateUserAccess, async (req, res) => {
+// GET /api/users - List users in organization (auth + org)
+router.get('/', authenticateToken, validateOrganization, async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+    const result = await UserService.getAllUsers(req.organizationId, { limit, offset });
+    res.json(result);
+  } catch (error) {
+    console.error('Error listing users:', error);
+    res.status(500).json({ error: 'Failed to list users' });
+  }
+});
+
+// POST /api/users - Add user to organization (owner/admin only)
+router.post('/', authenticateToken, validateOrganization, requireOwnerOrAdmin, async (req, res) => {
+  try {
+    const { error, value } = createUserSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ error: 'Validation error', details: error.details.map(d => d.message) });
+    }
+    const user = await UserService.createUserInOrganization(
+      req.organizationId,
+      value,
+      req.userId
+    );
+    res.status(201).json({ message: 'User added to organization', user });
+  } catch (err) {
+    console.error('Error adding user:', err);
+    if (err.message?.includes('already exists')) {
+      return res.status(400).json({ error: err.message });
+    }
+    res.status(500).json({ error: 'Failed to add user' });
+  }
+});
+
+// GET /api/users/:id/bills - Get all bills for a user (same org)
+router.get('/:id/bills', authenticateToken, validateOrganization, validateUserAccess, async (req, res) => {
   try {
     const { id } = req.params;
     const { limit = 50, offset = 0 } = req.query;
-
-    const result = await UserService.getUserBills(id, { limit, offset });
+    const result = await UserService.getUserBills(id, req.organizationId, { limit, offset });
     res.json(result);
   } catch (error) {
     console.error('Error fetching user bills:', error);
-    if (error.message === 'User not found') {
-      return res.status(404).json({ error: error.message });
-    }
+    if (error.message === 'User not found') return res.status(404).json({ error: error.message });
     res.status(500).json({ error: 'Failed to fetch user bills' });
   }
 });
 
-// GET /api/users/:id/stats - Get user statistics
-router.get('/:id/stats', authenticateToken, validateUserAccess, async (req, res) => {
+// GET /api/users/:id/stats - Get user statistics (same org)
+router.get('/:id/stats', authenticateToken, validateOrganization, validateUserAccess, async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await UserService.getUserStats(id);
+    const result = await UserService.getUserStats(id, req.organizationId);
     res.json(result);
   } catch (error) {
     console.error('Error fetching user stats:', error);
-    if (error.message === 'User not found') {
-      return res.status(404).json({ error: error.message });
-    }
+    if (error.message === 'User not found') return res.status(404).json({ error: error.message });
     res.status(500).json({ error: 'Failed to fetch user statistics' });
   }
 });

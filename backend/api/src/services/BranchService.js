@@ -5,9 +5,10 @@ class BranchService {
    * Get all active branches
    * @returns {Promise<Array>} List of active branches
    */
-  async getAllBranches() {
+  async getAllBranches(organizationId) {
+    if (!organizationId) throw new Error('Organization ID is required');
     return await prisma.branch.findMany({
-      where: { isActive: true },
+      where: { organizationId: parseInt(organizationId), isActive: true },
       orderBy: { name: 'asc' },
       select: {
         id: true,
@@ -30,9 +31,9 @@ class BranchService {
    * @param {number} branchId - Branch ID
    * @returns {Promise<Object|null>} Branch or null if not found
    */
-  async getBranchById(branchId) {
-    return await prisma.branch.findUnique({
-      where: { id: parseInt(branchId) },
+  async getBranchById(branchId, organizationId) {
+    return await prisma.branch.findFirst({
+      where: { id: parseInt(branchId), organizationId: parseInt(organizationId) },
       select: {
         id: true,
         name: true,
@@ -65,9 +66,10 @@ class BranchService {
    * @param {string} code - Branch code
    * @returns {Promise<Object|null>} Branch or null if not found
    */
-  async getBranchByCode(code) {
-    return await prisma.branch.findUnique({
-      where: { code: code.toUpperCase() },
+  async getBranchByCode(code, organizationId) {
+    if (!organizationId) throw new Error('Organization ID is required');
+    return await prisma.branch.findFirst({
+      where: { code: code.toUpperCase(), organizationId: parseInt(organizationId) },
       select: {
         id: true,
         name: true,
@@ -310,10 +312,13 @@ class BranchService {
    * @returns {Promise<Object>} Created branch
    */
   async createBranch(branchData) {
-    const { name, code, address, phone, email, isActive = true } = branchData;
+    const { organization_id, name, code, address, phone, email, isActive = true } = branchData;
+
+    if (!organization_id) throw new Error('Organization ID is required');
 
     return await prisma.branch.create({
       data: {
+        organizationId: parseInt(organization_id),
         name,
         code: code.toUpperCase(),
         address,
@@ -340,8 +345,13 @@ class BranchService {
    * @param {Object} updateData - Update data
    * @returns {Promise<Object>} Updated branch
    */
-  async updateBranch(branchId, updateData) {
+  async updateBranch(branchId, organizationId, updateData) {
     const { name, code, address, phone, email, isActive } = updateData;
+
+    const existing = await prisma.branch.findFirst({
+      where: { id: parseInt(branchId), organizationId: parseInt(organizationId) }
+    });
+    if (!existing) throw new Error('Branch not found');
 
     const updateFields = {};
     if (name !== undefined) updateFields.name = name;

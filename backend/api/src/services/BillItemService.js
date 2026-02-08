@@ -12,15 +12,13 @@ class BillItemService {
    * @returns {Promise<Object>} Bill items with pagination info
    */
   async getAllBillItems(filters = {}) {
-    const { user_id, bill_id, item_id, limit = 50, offset = 0 } = filters;
+    const { organization_id, bill_id, item_id, limit = 50, offset = 0 } = filters;
 
-    if (!user_id) {
-      throw new Error('User ID is required');
-    }
+    if (!organization_id) throw new Error('Organization ID is required');
 
     const prismaWhere = {
       bill: {
-        userId: parseInt(user_id)
+        organizationId: parseInt(organization_id)
       }
     };
     if (bill_id) prismaWhere.billId = parseInt(bill_id);
@@ -41,7 +39,7 @@ class BillItemService {
             }
           }
         },
-        item: true
+        item: { include: { itbisRate: true } }
       },
       orderBy: {
         createdAt: 'desc'
@@ -66,12 +64,12 @@ class BillItemService {
    * @param {number} userId - User ID (for security)
    * @returns {Promise<Object|null>} Bill item with related data or null if not found
    */
-  async getBillItemById(id, userId) {
+  async getBillItemById(id, organizationId) {
     return await prisma.billItem.findFirst({
       where: {
         id: parseInt(id),
         bill: {
-          userId: parseInt(userId)
+          organizationId: parseInt(organizationId)
         }
       },
       include: {
@@ -86,7 +84,7 @@ class BillItemService {
             }
           }
         },
-        item: true
+        item: { include: { itbisRate: true } }
       }
     });
   }
@@ -123,7 +121,7 @@ class BillItemService {
     const billItems = await prisma.billItem.findMany({
       where: { billId: parseInt(billId) },
       include: {
-        item: true
+        item: { include: { itbisRate: true } }
       },
       orderBy: {
         createdAt: 'asc'
@@ -150,20 +148,17 @@ class BillItemService {
    * @param {number} userId - User ID (for security)
    * @returns {Promise<Object>} Item with bills that contain it
    */
-  async getBillsForItem(itemId, userId) {
-    const item = await prisma.item.findUnique({
-      where: { id: parseInt(itemId) }
+  async getBillsForItem(itemId, organizationId) {
+    const item = await prisma.item.findFirst({
+      where: { id: parseInt(itemId), organizationId: parseInt(organizationId) }
     });
-
-    if (!item) {
-      throw new Error('Item not found');
-    }
+    if (!item) throw new Error('Item not found');
 
     const billItems = await prisma.billItem.findMany({
       where: {
         itemId: parseInt(itemId),
         bill: {
-          userId: parseInt(userId)
+          organizationId: parseInt(organizationId)
         }
       },
       include: {
@@ -252,7 +247,7 @@ class BillItemService {
             title: true
           }
         },
-        item: true
+        item: { include: { itbisRate: true } }
       }
     });
   }
@@ -264,19 +259,16 @@ class BillItemService {
    * @param {Object} updateData - Update data
    * @returns {Promise<Object>} Updated bill item
    */
-  async updateBillItem(id, userId, updateData) {
+  async updateBillItem(id, organizationId, updateData) {
     const existingBillItem = await prisma.billItem.findFirst({
       where: {
         id: parseInt(id),
         bill: {
-          userId: parseInt(userId)
+          organizationId: parseInt(organizationId)
         }
       }
     });
-
-    if (!existingBillItem) {
-      throw new Error('Bill-item relationship not found');
-    }
+    if (!existingBillItem) throw new Error('Bill-item relationship not found');
 
     const updateFields = {};
     if (updateData.quantity !== undefined) updateFields.quantity = updateData.quantity;
@@ -300,7 +292,7 @@ class BillItemService {
             title: true
           }
         },
-        item: true
+        item: { include: { itbisRate: true } }
       }
     });
   }
@@ -311,33 +303,20 @@ class BillItemService {
    * @param {number} userId - User ID (for security)
    * @returns {Promise<Object>} Deletion result
    */
-  async removeItemFromBill(id, userId) {
+  async removeItemFromBill(id, organizationId) {
     const existingBillItem = await prisma.billItem.findFirst({
       where: {
         id: parseInt(id),
         bill: {
-          userId: parseInt(userId)
+          organizationId: parseInt(organizationId)
         }
       },
       include: {
-        bill: {
-          select: {
-            id: true,
-            title: true
-          }
-        },
-        item: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
+        bill: { select: { id: true, title: true } },
+        item: { select: { id: true, name: true } }
       }
     });
-
-    if (!existingBillItem) {
-      throw new Error('Bill-item relationship not found');
-    }
+    if (!existingBillItem) throw new Error('Bill-item relationship not found');
 
     await prisma.billItem.delete({
       where: { id: parseInt(id) }
@@ -403,27 +382,21 @@ class BillItemService {
    * @param {Array} items - Array of items to add
    * @returns {Promise<Array>} Created bill items
    */
-  async bulkAddItemsToBill(billId, userId, items) {
-    if (!userId) {
-      throw new Error('User ID is required');
-    }
+  async bulkAddItemsToBill(billId, organizationId, items) {
+    if (!organizationId) throw new Error('Organization ID is required');
 
     const billExists = await prisma.bill.findFirst({
       where: {
         id: parseInt(billId),
-        userId: parseInt(userId)
+        organizationId: parseInt(organizationId)
       }
     });
-
-    if (!billExists) {
-      throw new Error('Bill not found or does not belong to user');
-    }
+    if (!billExists) throw new Error('Bill not found or does not belong to organization');
 
     const itemIds = items.map(item => item.item_id);
     const existingItems = await prisma.item.findMany({
-      where: { id: { in: itemIds } }
+      where: { id: { in: itemIds }, organizationId: parseInt(organizationId) }
     });
-
     if (existingItems.length !== itemIds.length) {
       throw new Error('One or more items not found');
     }
@@ -465,7 +438,7 @@ class BillItemService {
       },
       include: {
         bill: { select: { id: true, title: true } },
-        item: true
+        item: { include: { itbisRate: true } }
       }
     });
   }

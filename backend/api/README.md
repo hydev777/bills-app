@@ -178,13 +178,15 @@ DELETE /api/items/:id                 # Delete item
 
 ### Bill Items Management
 
+Request body for **POST /api/bill-items**: `bill_id` (required), `item_id` (required), `quantity` (optional, default: 1), `unit_price` (optional), `notes` (optional).
+
 ```http
 GET    /api/bill-items                # Get all bill items
 GET    /api/bill-items/:id            # Get specific bill item
 GET    /api/bill-items/bill/:bill_id  # Items for a bill
 GET    /api/bill-items/item/:item_id  # Bills containing an item
 GET    /api/bill-items/stats/summary  # Bill-item statistics
-POST   /api/bill-items                # Create new bill item
+POST   /api/bill-items                # Create new bill item (can include quantity)
 PUT    /api/bill-items/:id            # Update bill item
 DELETE /api/bill-items/:id            # Delete bill item
 ```
@@ -278,6 +280,25 @@ curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   "http://localhost:3000/api/bills/stats/summary"
 ```
 Statistics are for the authenticated user.
+
+### Add item to bill (with quantity)
+
+```bash
+curl -X POST http://localhost:3000/api/bill-items \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "X-Organization-Id: YOUR_ORG_ID" \
+  -d '{
+    "bill_id": 1,
+    "item_id": 1,
+    "quantity": 3,
+    "unit_price": 10.50,
+    "notes": "Optional notes"
+  }'
+```
+- `quantity`: number of units (optional; default is 1).
+- `unit_price`: optional; if omitted, the item's default unit price is used.
+- `notes`: optional.
 
 ## 🗄️ Database Schema
 

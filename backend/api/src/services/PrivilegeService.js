@@ -291,13 +291,24 @@ class PrivilegeService {
    * @param {number} privilegeId - Privilege ID
    * @param {number} grantedBy - User ID who is granting the privilege
    * @param {Date} expiresAt - Optional expiration date
-   * @returns {Promise<Object>} Created user privilege
+   * @returns {Promise<Object>} Created or updated user privilege
    */
   async grantPrivilegeToUser(userId, privilegeId, grantedBy, expiresAt = null) {
+    const uid = parseInt(userId);
+    const pid = parseInt(privilegeId);
+    const existing = await prisma.userPrivilege.findFirst({
+      where: { userId: uid, privilegeId: pid }
+    });
+    if (existing) {
+      return await prisma.userPrivilege.update({
+        where: { id: existing.id },
+        data: { isActive: true, grantedBy: parseInt(grantedBy), expiresAt }
+      });
+    }
     return await prisma.userPrivilege.create({
       data: {
-        userId: parseInt(userId),
-        privilegeId: parseInt(privilegeId),
+        userId: uid,
+        privilegeId: pid,
         grantedBy: parseInt(grantedBy),
         expiresAt
       },
@@ -336,6 +347,75 @@ class PrivilegeService {
       },
       data: { isActive: false }
     });
+  }
+
+  /**
+   * Revoke all privileges from a user (used when assigning a new role)
+   * @param {number} userId - User ID
+   * @returns {Promise<Object>} Update result
+   */
+  async revokeAllPrivilegesFromUser(userId) {
+    return await prisma.userPrivilege.updateMany({
+      where: { userId: parseInt(userId) },
+      data: { isActive: false }
+    });
+  }
+
+  /**
+   * Role names for assignRole
+   */
+  static ROLES = {
+    CAJERO: 'cajero',
+    ADMINISTRADOR: 'administrador'
+  };
+
+  /**
+   * Privilege names per role (cajero: create/read bills + read items; administrador: all)
+   */
+  static ROLE_PRIVILEGE_NAMES = {
+    cajero: ['bill.create', 'bill.read', 'item.read'],
+    administrador: null // null = grant all privileges from DB
+  };
+
+  /**
+   * Assign a role to a user. Replaces all current privileges with the role's set.
+   * @param {number} userId - User ID
+   * @param {string} role - 'cajero' | 'administrador'
+   * @param {number} grantedBy - User ID who is assigning the role
+   * @returns {Promise<Object>} { user, role, privileges }
+   */
+  async assignRole(userId, role, grantedBy) {
+    const roleLower = role.toLowerCase();
+    if (roleLower !== PrivilegeService.ROLES.CAJERO && roleLower !== PrivilegeService.ROLES.ADMINISTRADOR) {
+      throw new Error(`Invalid role. Use 'cajero' or 'administrador'.`);
+    }
+
+    await this.revokeAllPrivilegesFromUser(userId);
+
+    let privilegeNames = PrivilegeService.ROLE_PRIVILEGE_NAMES[roleLower];
+    if (roleLower === PrivilegeService.ROLES.ADMINISTRADOR) {
+      const all = await prisma.privilege.findMany({
+        where: { isActive: true },
+        select: { id: true, name: true }
+      });
+      privilegeNames = all.map(p => p.name);
+    }
+
+    const granted = [];
+    for (const name of privilegeNames) {
+      const priv = await this.getPrivilegeByName(name);
+      if (priv) {
+        await this.grantPrivilegeToUser(parseInt(userId), priv.id, parseInt(grantedBy), null);
+        granted.push(priv.name);
+      }
+    }
+
+    const userPrivileges = await this.getUserPrivileges(parseInt(userId));
+    return {
+      user: { id: parseInt(userId) },
+      role: roleLower,
+      privileges: userPrivileges.map(up => up.privilege.name)
+    };
   }
 
   /**

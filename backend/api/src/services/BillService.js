@@ -10,15 +10,15 @@ class BillService {
    * @returns {Promise<Object>} Bills with pagination info
    */
   async getAllBills(filters = {}) {
-    const { user_id, limit = 50, offset = 0 } = filters;
+    const { organization_id, user_id, status, limit = 50, offset = 0 } = filters;
 
-    if (!user_id) {
-      throw new Error('User ID is required');
+    if (!organization_id) {
+      throw new Error('Organization ID is required');
     }
 
-    const where = {
-      userId: parseInt(user_id)
-    };
+    const where = { organizationId: parseInt(organization_id) };
+    if (user_id) where.userId = parseInt(user_id);
+    if (status) where.status = status;
 
     const bills = await prisma.bill.findMany({
       where,
@@ -32,7 +32,7 @@ class BillService {
         },
         billItems: {
           include: {
-            item: true
+            item: { include: { itbisRate: true } }
           }
         }
       },
@@ -59,11 +59,11 @@ class BillService {
    * @param {number} userId - User ID (for security)
    * @returns {Promise<Object|null>} Bill with related data or null if not found
    */
-  async getBillById(id, userId) {
+  async getBillById(id, organizationId) {
     return await prisma.bill.findFirst({
       where: {
         id: parseInt(id),
-        userId: parseInt(userId)
+        organizationId: parseInt(organizationId)
       },
       include: {
         user: {
@@ -75,7 +75,39 @@ class BillService {
         },
         billItems: {
           include: {
-            item: true
+            item: { include: { itbisRate: true } }
+          },
+          orderBy: {
+            createdAt: 'asc'
+          }
+        }
+      }
+    });
+  }
+
+  /**
+   * Get a bill by its unique public ID
+   * @param {string} publicId - Bill public UUID
+   * @param {number} organizationId - Organization ID
+   * @returns {Promise<Object|null>} Bill with related data or null if not found
+   */
+  async getBillByPublicId(publicId, organizationId) {
+    return await prisma.bill.findFirst({
+      where: {
+        publicId,
+        organizationId: parseInt(organizationId)
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true
+          }
+        },
+        billItems: {
+          include: {
+            item: { include: { itbisRate: true } }
           },
           orderBy: {
             createdAt: 'asc'
@@ -91,26 +123,25 @@ class BillService {
    * @returns {Promise<Object>} Created bill
    */
   async createBill(billData) {
-    const { title, description, amount, user_id } = billData;
+    const { title, description, amount, status, user_id, organization_id } = billData;
 
-    if (!user_id) {
-      throw new Error('User ID is required');
+    if (!user_id || !organization_id) {
+      throw new Error('User ID and Organization ID are required');
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: parseInt(user_id) }
+    const user = await prisma.user.findFirst({
+      where: { id: parseInt(user_id), organizationId: parseInt(organization_id) }
     });
-
-    if (!user) {
-      throw new Error('User not found');
-    }
+    if (!user) throw new Error('User not found');
 
     return await prisma.bill.create({
       data: {
         title,
         description,
-        amount,
-        userId: parseInt(user_id)
+        amount: amount ?? 0,
+        status: status || 'draft',
+        userId: parseInt(user_id),
+        organizationId: parseInt(organization_id)
       },
       include: {
         user: {
@@ -122,7 +153,7 @@ class BillService {
         },
         billItems: {
           include: {
-            item: true
+            item: { include: { itbisRate: true } }
           }
         }
       }
@@ -136,22 +167,20 @@ class BillService {
    * @param {Object} updateData - Update data
    * @returns {Promise<Object>} Updated bill
    */
-  async updateBill(id, userId, updateData) {
+  async updateBill(id, organizationId, updateData) {
     const existingBill = await prisma.bill.findFirst({
       where: {
         id: parseInt(id),
-        userId: parseInt(userId)
+        organizationId: parseInt(organizationId)
       }
     });
-
-    if (!existingBill) {
-      throw new Error('Bill not found');
-    }
+    if (!existingBill) throw new Error('Bill not found');
 
     const updateFields = {};
     if (updateData.title !== undefined) updateFields.title = updateData.title;
     if (updateData.description !== undefined) updateFields.description = updateData.description;
     if (updateData.amount !== undefined) updateFields.amount = updateData.amount;
+    if (updateData.status !== undefined) updateFields.status = updateData.status;
 
     return await prisma.bill.update({
       where: { id: parseInt(id) },
@@ -166,7 +195,7 @@ class BillService {
         },
         billItems: {
           include: {
-            item: true
+            item: { include: { itbisRate: true } }
           }
         }
       }
@@ -179,24 +208,21 @@ class BillService {
    * @param {number} userId - User ID (for security)
    * @returns {Promise<Object>} Deleted bill info
    */
-  async deleteBill(id, userId) {
+  async deleteBill(id, organizationId) {
     const existingBill = await prisma.bill.findFirst({
       where: {
         id: parseInt(id),
-        userId: parseInt(userId)
+        organizationId: parseInt(organizationId)
       },
       include: {
         billItems: {
           include: {
-            item: true
+            item: { include: { itbisRate: true } }
           }
         }
       }
     });
-
-    if (!existingBill) {
-      throw new Error('Bill not found');
-    }
+    if (!existingBill) throw new Error('Bill not found');
 
     await prisma.bill.delete({
       where: { id: parseInt(id) }
@@ -213,14 +239,9 @@ class BillService {
    * @param {number} userId - User ID (required)
    * @returns {Promise<Object>} Bill statistics
    */
-  async getBillStats(userId) {
-    if (!userId) {
-      throw new Error('User ID is required');
-    }
-
-    const where = {
-      userId: parseInt(userId)
-    };
+  async getBillStats(organizationId) {
+    if (!organizationId) throw new Error('Organization ID is required');
+    const where = { organizationId: parseInt(organizationId) };
 
     const totalBills = await prisma.bill.count({ where });
 
@@ -245,11 +266,11 @@ class BillService {
    * @param {Object} options - Query options
    * @returns {Promise<Array>} User's bills
    */
-  async getBillsByUserId(userId, options = {}) {
+  async getBillsByUserId(userId, organizationId, options = {}) {
     const { limit = 50, offset = 0 } = options;
-
     const where = {
-      userId: parseInt(userId)
+      userId: parseInt(userId),
+      organizationId: parseInt(organizationId)
     };
 
     return await prisma.bill.findMany({
@@ -257,7 +278,7 @@ class BillService {
       include: {
         billItems: {
           include: {
-            item: true
+            item: { include: { itbisRate: true } }
           }
         }
       },
