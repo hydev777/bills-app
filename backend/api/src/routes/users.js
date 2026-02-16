@@ -2,14 +2,13 @@ const express = require('express');
 const router = express.Router();
 const Joi = require('joi');
 const { UserService } = require('../services');
-const { authenticateToken, validateUserAccess } = require('../middleware/auth');
-const { validateOrganization, requireOwnerOrAdmin } = require('../middleware/organization');
+const { authenticateToken, validateUserAccess, requirePrivilege } = require('../middleware/auth');
+const { validateBranch } = require('../middleware/branch');
 
 const userSchema = Joi.object({
   username: Joi.string().alphanum().min(3).max(50).required(),
   email: Joi.string().email().required(),
-  password: Joi.string().min(6).required(),
-  organizationName: Joi.string().max(100).optional()
+  password: Joi.string().min(6).required()
 });
 
 const createUserSchema = Joi.object({
@@ -45,7 +44,7 @@ router.post('/register', async (req, res) => {
     res.status(201).json(result);
   } catch (error) {
     console.error('Error creating user:', error);
-    if (error.message?.includes('User already exists') || error.message?.includes('organization')) {
+    if (error.message?.includes('User already exists')) {
       return res.status(400).json({ error: error.message });
     }
     res.status(500).json({ error: 'Failed to create user' });
@@ -112,11 +111,11 @@ router.get('/profile', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /api/users - List users in organization (auth + org)
-router.get('/', authenticateToken, validateOrganization, async (req, res) => {
+// GET /api/users - List users (auth + privilege)
+router.get('/', authenticateToken, requirePrivilege('user', 'read'), async (req, res) => {
   try {
     const { limit = 50, offset = 0 } = req.query;
-    const result = await UserService.getAllUsers(req.organizationId, { limit, offset });
+    const result = await UserService.getAllUsers({ limit, offset });
     res.json(result);
   } catch (error) {
     console.error('Error listing users:', error);
@@ -124,19 +123,15 @@ router.get('/', authenticateToken, validateOrganization, async (req, res) => {
   }
 });
 
-// POST /api/users - Add user to organization (owner/admin only)
-router.post('/', authenticateToken, validateOrganization, requireOwnerOrAdmin, async (req, res) => {
+// POST /api/users - Create user (requires user.create)
+router.post('/', authenticateToken, requirePrivilege('user', 'create'), async (req, res) => {
   try {
     const { error, value } = createUserSchema.validate(req.body);
     if (error) {
       return res.status(400).json({ error: 'Validation error', details: error.details.map(d => d.message) });
     }
-    const user = await UserService.createUserInOrganization(
-      req.organizationId,
-      value,
-      req.userId
-    );
-    res.status(201).json({ message: 'User added to organization', user });
+    const user = await UserService.createUser(value, req.userId);
+    res.status(201).json({ message: 'User created', user });
   } catch (err) {
     console.error('Error adding user:', err);
     if (err.message?.includes('already exists')) {
@@ -146,12 +141,12 @@ router.post('/', authenticateToken, validateOrganization, requireOwnerOrAdmin, a
   }
 });
 
-// GET /api/users/:id/bills - Get all bills for a user (same org)
-router.get('/:id/bills', authenticateToken, validateOrganization, validateUserAccess, async (req, res) => {
+// GET /api/users/:id/bills - Get all bills for a user in current branch. Requires X-Branch-Id
+router.get('/:id/bills', authenticateToken, validateBranch, validateUserAccess, requirePrivilege('bill', 'read'), async (req, res) => {
   try {
     const { id } = req.params;
     const { limit = 50, offset = 0 } = req.query;
-    const result = await UserService.getUserBills(id, req.organizationId, { limit, offset });
+    const result = await UserService.getUserBills(id, req.branchId, { limit, offset });
     res.json(result);
   } catch (error) {
     console.error('Error fetching user bills:', error);
@@ -160,11 +155,11 @@ router.get('/:id/bills', authenticateToken, validateOrganization, validateUserAc
   }
 });
 
-// GET /api/users/:id/stats - Get user statistics (same org)
-router.get('/:id/stats', authenticateToken, validateOrganization, validateUserAccess, async (req, res) => {
+// GET /api/users/:id/stats - Get user statistics (branch-scoped). Requires X-Branch-Id
+router.get('/:id/stats', authenticateToken, validateBranch, validateUserAccess, async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await UserService.getUserStats(id, req.organizationId);
+    const result = await UserService.getUserStats(id, req.branchId);
     res.json(result);
   } catch (error) {
     console.error('Error fetching user stats:', error);

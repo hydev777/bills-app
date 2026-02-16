@@ -4,19 +4,21 @@ A containerized backend application for managing bills and payments, built with 
 
 ## 🚀 Features
 
-- **Bill Management**: Create, read, update, and delete bills (per organization). Each bill has a unique **public ID** (UUID) and a **status** (draft, issued, paid, cancelled).
+- **Bill Management**: Create, read, update, and delete bills (per branch). Each bill has a unique **public ID** (UUID) and a **status** (draft, issued, paid, cancelled). **Totals** are calculated from line items: `subtotal`, `tax_amount` (ITBIS), and `amount` (total); they update automatically when you add, edit, or remove bill lines.
 - **User Authentication**: Register and login with JWT tokens
-- **Organizations**: Multi-tenant; users, bills, items, and branches are scoped by organization. Header `X-Organization-Id` required for API calls.
-- **Item Management**: Global catalog of items with categories. Each item has a mandatory **ITBIS rate** (tax percentage, e.g. 18% or 0%).
+- **Branch scope**: Bills, items, and item categories are scoped by **branch** (sucursal). Routes for bills, items, and bill-items require the **X-Branch-Id** header. Users and branches are global; email and username are unique globally; branch `code` is unique globally.
+- **Privilege `all`**: Users with the `all` privilege (e.g. administrador) can access any branch without being in `user_branches`; others must have the branch in `user_branches` (via login-branch or assignment).
+- **Item Management**: Per-branch catalog of items with categories. Each item has a mandatory **ITBIS rate** (tax percentage, e.g. 18% or 0%).
 - **ITBIS Rates**: Table of tax percentages (e.g. 18%, 0%). Endpoints: `GET /api/itbis-rates`.
 - **Bill Details**: Link items to bills with quantities and prices
-- **Branches**: Manage branches (sucursales) and user–branch access
-- **Invoicing basics**: See [docs/FACTURACION_BASICA.md](docs/FACTURACION_BASICA.md) for what’s included and what’s missing. Bill status and ITBIS per product are implemented.
+- **Branches**: Manage branches (sucursales) and user–branch access. Each branch can have a **tax_id** (RNC/CIF/NIF) for the issuer.
+- **Clients**: Global client list with optional **tax_id** (fiscal ID) for invoicing.
+- **Invoicing basics**: See [docs/FACTURACION_BASICA.md](docs/FACTURACION_BASICA.md) for what’s included and what’s still missing (e.g. sequential invoice number, PDF).
 - **Privileges**: Role-based authorization (branch, user, bill, item, privilege). Predefined roles: **Cajero** (create/read bills only), **Administrador** (all privileges). See [docs/PRIVILEGE_SYSTEM.md](docs/PRIVILEGE_SYSTEM.md).
 - **Statistics**: Bill summaries, item/category stats
 - **Containerized**: Separate Docker containers for API and database
 - **Prisma ORM**: Type-safe database access
-- **Database Migrations**: Flyway migrations (V1–V11, including organizations, bill public_id, bill status, itbis_rates)
+- **Database Migrations**: Flyway migrations (V1–V14; V13 branch scope, V14 bill tax breakdown and fiscal IDs)
 
 ## 📁 Project Structure
 
@@ -30,7 +32,7 @@ bills/
 │   │   │   └── prisma.js          # Prisma client configuration
 │   │   ├── middleware/
 │   │   │   ├── auth.js            # Authentication middleware
-│   │   │   └── organization.js   # Organization scope (X-Organization-Id)
+│   │   │   └── branch.js          # Branch scope (X-Branch-Id) for bills, items, bill-items
 │   │   ├── routes/
 │   │   │   ├── bills.js           # Bill management endpoints
 │   │   │   ├── users.js           # User authentication endpoints
@@ -70,7 +72,10 @@ bills/
 │   │   ├── V8__Add_organizations.sql          # Organizations (multi-tenant)
 │   │   ├── V9__Add_bill_public_id.sql         # Unique public UUID per bill
 │   │   ├── V10__Add_bill_status.sql            # Bill status (draft/issued/paid/cancelled)
-│   │   └── V11__Add_itbis_rates.sql            # ITBIS rates + items.itbis_rate_id
+│   │   ├── V11__Add_itbis_rates.sql            # ITBIS rates + items.itbis_rate_id
+│   │   ├── V12__Add_clients.sql                 # Global clients + bills.client_id
+│   │   ├── V13__Scope_by_branch_and_remove_organizations.sql  # Branch scope; drop organizations
+│   │   └── V14__Bill_tax_breakdown_and_fiscal_ids.sql         # Bills: subtotal, tax_amount; Branch/Client: tax_id
 │   └── README.md                  # Migration documentation
 ├── docs/                          # Project documentation
 ├── docker-compose.yml             # Container orchestration
@@ -212,19 +217,24 @@ For detailed API documentation, endpoints, usage examples, and development infor
 
 - **Base URL**: http://localhost:3000/api
 - **Authentication**: JWT tokens required for protected endpoints (`Authorization: Bearer <token>`)
-- **Organization**: Send `X-Organization-Id` header for org-scoped endpoints (bills, items, bill-items, itbis-rates, etc.)
+- **Branch**: Send **X-Branch-Id** header for branch-scoped endpoints: bills, items, bill-items, `GET /api/users/:id/bills`, and `GET /api/users/:id/stats`. Other routes (users, branches, clients, privileges, itbis-rates) require only authentication.
 - **Content-Type**: application/json for all requests
 - **Health Check**: http://localhost:3000/health
 
 ### Main Endpoints
 
 - **Authentication**: `/api/users/register`, `/api/users/login`, `/api/users/login-branch`
-- **Bills**: `/api/bills` (GET, POST, PUT, DELETE), `/api/bills/stats/summary`, `/api/bills/public/:publicId`. Query: `?status=draft|issued|paid|cancelled`, `?user_id=`
+- **Bills**: `/api/bills` (GET, POST, PUT, DELETE), `/api/bills/stats/summary`, `/api/bills/public/:publicId`. Query: `?status=`, `?user_id=`, `?client_id=`. Body create/update: optional `client_id` (null = al contado).
+- **Clients**: `/api/clients` (GET, POST, PUT, DELETE). Global list; any user can assign any client to a bill.
 - **Items**: `/api/items` (GET, POST, PUT, DELETE), `/api/items/categories`, `/api/items/:id/stats`. Create/update require `itbis_rate_id`.
 - **Bill Items**: `/api/bill-items` (GET, POST, PUT, DELETE), `/api/bill-items/stats/summary`, `/api/bill-items/bill/:bill_id`, `/api/bill-items/item/:item_id`
 - **ITBIS Rates**: `/api/itbis-rates` (GET list), `/api/itbis-rates/:id` (GET one). Used for product tax percentage (e.g. 18%, 0%).
 - **Branches**: `/api/branches` (GET, POST, PUT, DELETE), `/api/branches/user/:userId`
 - **Privileges**: `/api/privileges` (CRUD), `/api/privileges/grant`, `/api/privileges/revoke`, `/api/privileges/assign-role` (body: `userId`, `role`: `cajero` | `administrador`)
+
+**Breaking changes (branch scope)**: (1) Bills, items, and bill-items require the **X-Branch-Id** header. (2) The `organizations` table has been removed; `email` and `username` are globally unique; branch `code` is globally unique. (3) Users with the **`all`** privilege can access any branch; others must have the branch in `user_branches`.
+
+**Post-deployment (privilege `all`)**: After deploying the branch-scope changes, run the script that initializes default privileges (so the `all` privilege exists in the DB). Users who already had the **administrador** role must be re-assigned that role (e.g. via `POST /api/privileges/assign-role` with `role: administrador`) so they receive the new `all` privilege; otherwise they will only have access to branches listed in `user_branches`.
 
 ## 🛠️ Development Commands (Makefile)
 
@@ -299,49 +309,52 @@ make prod-down          # Stop production services
 
 ## 🗄️ Database Schema
 
-The application uses PostgreSQL with Prisma ORM. The schema is defined in `api/prisma/schema.prisma` and managed through Flyway migrations (V1–V11). The current schema uses **organizations** (V8) for multi-tenant scope; bills, items, and users belong to an organization.
-
-### Organizations Table (`organizations`)
-- `id` (Primary Key), `name` (VARCHAR(100)), `created_at`, `updated_at`
+The application uses PostgreSQL with Prisma ORM. The schema is defined in `api/prisma/schema.prisma` and managed through Flyway migrations (V1–V14). Scope is by **branch** (sucursal); there is no `organizations` table. Users and branches are global; bills, items, and item_categories belong to a branch.
 
 ### Users Table (`users`)
-- `id` (Primary Key), `organization_id` (FK → organizations), `username`, `email`, `password_hash`, `role`
-- Unique per org: `(organization_id, email)`, `(organization_id, username)`
+- `id` (Primary Key), `username`, `email`, `password_hash`, `role`, `created_at`, `updated_at`
+- **Unique globally**: `email`, `username`
+
+### Clients Table (`clients`) – global
+- `id` (Primary Key), `name` (VARCHAR(100)), `identifier` (VARCHAR(50), optional), **`tax_id`** (VARCHAR(50), optional; fiscal ID e.g. RNC/CIF), `email`, `phone`, `address`, `created_at`, `updated_at`
+- Any user can assign any client to a bill.
+
+### Branches Table (`branches`)
+- `id` (Primary Key), `code` (unique globally), `name`, **`tax_id`** (VARCHAR(50), optional; issuer fiscal ID), `address`, `phone`, `email`, `is_active`, `created_at`, `updated_at`
 
 ### Bills Table (`bills`)
-- `id` (Primary Key), `public_id` (UUID, unique), `organization_id`, `user_id` (creator)
-- `title`, `description`, `amount`, **`status`** (VARCHAR(20): draft, issued, paid, cancelled; default: draft)
+- `id` (Primary Key), `public_id` (UUID, unique), **`branch_id`** (FK → branches, ON DELETE RESTRICT), `user_id` (creator), **`client_id`** (FK → clients, optional; null = al contado)
+- `title`, `description`, **`subtotal`**, **`tax_amount`** (ITBIS), **`amount`** (total; recalculated from line items), **`status`** (VARCHAR(20): draft, issued, paid, cancelled; default: draft)
 - `created_at`, `updated_at`
 
-**Indexes**: organization_id, user_id, status, public_id
+**Indexes**: branch_id, user_id, client_id, status, public_id
 
 ### ITBIS Rates Table (`itbis_rates`)
 - `id` (Primary Key), `name` (VARCHAR(50)), **`percentage`** (DECIMAL(5,2), unique), `created_at`, `updated_at`
 - Seeded with 18% and 0%. Products reference one rate (mandatory).
 
 ### Item Categories Table (`item_categories`)
-- `id`, `organization_id`, `name` (unique per org), `description`, `created_at`, `updated_at`
+- `id`, **`branch_id`** (FK → branches, ON DELETE RESTRICT), `name` (unique per branch), `description`, `created_at`, `updated_at`
 
 ### Items Table (`items`)
-- `id`, `organization_id`, `name`, `description`, `unit_price`, `category_id` (optional), **`itbis_rate_id`** (FK → itbis_rates, required)
+- `id`, **`branch_id`** (FK → branches, ON DELETE RESTRICT), `name`, `description`, `unit_price`, `category_id` (optional), **`itbis_rate_id`** (FK → itbis_rates, required)
 - `created_at`, `updated_at`
 
-**Indexes**: organization_id, category_id, itbis_rate_id
+**Indexes**: branch_id, category_id, itbis_rate_id
 
 ### Bill Details Table (`bill_details`)
 - `id`, `bill_id`, `item_id`, `quantity` (default 1), `unit_price`, `total_price`, `notes`, `created_at`, `updated_at`
 - Unique(bill_id, item_id)
 
 ### Additional Tables (V2, V3)
-- **branches**: Branch (sucursal) data; `organization_id`, `code` unique per org.
 - **user_branches**: User–branch access (is_primary, can_login).
-- **privileges**: Resource/action permissions (e.g. `branch.create`, `bill.read`).
+- **privileges**: Resource/action permissions (e.g. `branch.create`, `bill.read`, **`all`** for access to any branch).
 - **user_privileges**: User–privilege assignments (granted_by, expires_at, is_active).
 
 ### Database Features
 - **Triggers**: Auto-update `updated_at` on all tables
 - **Cascading Deletes**: Bills and bill items removed when parent records are deleted
-- **Organizations**: Data scoped by `organization_id`; API requires `X-Organization-Id` header
+- **Branch scope**: Bills, items, and item_categories are scoped by `branch_id`; API requires **X-Branch-Id** for those endpoints
 - **Data Integrity**: Foreign keys, unique constraints, and indexes as above
 
 ## 🔒 Environment Variables
@@ -524,8 +537,8 @@ make up
    - Use `make admin` to start with pgAdmin
 
 2. **Database Management**:
-   - Schema changes are managed through Flyway migrations (V1–V11)
-   - V8 adds organizations; V9 adds bill public_id; V10 adds bill status; V11 adds itbis_rates and items.itbis_rate_id
+   - Schema changes are managed through Flyway migrations (V1–V14)
+   - V13: branch scope, organizations removed. V14: bills have subtotal/tax_amount; branches and clients have tax_id (fiscal ID).
    - Use `make db-shell` to connect to PostgreSQL
    - Use `make db-studio` to open Prisma Studio
 

@@ -30,7 +30,6 @@ const authenticateToken = async (req, res, next) => {
         id: true,
         username: true,
         email: true,
-        organizationId: true,
         role: true,
         createdAt: true
       }
@@ -42,7 +41,6 @@ const authenticateToken = async (req, res, next) => {
 
     req.user = user;
     req.userId = user.id;
-    req.organizationId = user.organizationId;
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);
@@ -82,7 +80,6 @@ const optionalAuth = async (req, res, next) => {
     if (!token) {
       req.user = null;
       req.userId = null;
-      req.organizationId = null;
       return next();
     }
 
@@ -93,7 +90,6 @@ const optionalAuth = async (req, res, next) => {
         id: true,
         username: true,
         email: true,
-        organizationId: true,
         role: true,
         createdAt: true
       }
@@ -101,12 +97,10 @@ const optionalAuth = async (req, res, next) => {
 
     req.user = user || null;
     req.userId = user ? user.id : null;
-    req.organizationId = user ? user.organizationId : null;
     next();
   } catch (error) {
     req.user = null;
     req.userId = null;
-    req.organizationId = null;
     next();
   }
 };
@@ -180,7 +174,6 @@ const authenticateBranchAccess = async (req, res, next) => {
         id: true,
         username: true,
         email: true,
-        organizationId: true,
         createdAt: true
       }
     });
@@ -189,19 +182,18 @@ const authenticateBranchAccess = async (req, res, next) => {
       return res.status(401).json({ error: 'Access denied', message: 'User not found' });
     }
 
+    const branch = await BranchService.getBranchById(branchId);
+    if (!branch) {
+      return res.status(404).json({ error: 'Not found', message: 'Branch not found' });
+    }
+
     const canAccess = await BranchService.canUserLoginToBranch(user.id, branchId);
     if (!canAccess) {
       return res.status(403).json({ error: 'Access denied', message: 'You do not have permission to access this branch' });
     }
 
-    const branch = await BranchService.getBranchById(branchId, user.organizationId);
-    if (!branch) {
-      return res.status(404).json({ error: 'Not found', message: 'Branch not found' });
-    }
-
     req.user = user;
     req.userId = user.id;
-    req.organizationId = user.organizationId;
     req.branch = branch;
     req.branchId = branch.id;
     

@@ -373,7 +373,7 @@ class PrivilegeService {
    * Privilege names per role (cajero: create/read bills + read items; administrador: all)
    */
   static ROLE_PRIVILEGE_NAMES = {
-    cajero: ['bill.create', 'bill.read', 'item.read'],
+    cajero: ['bill.create', 'bill.read', 'item.read', 'client.read', 'client.create'],
     administrador: null // null = grant all privileges from DB
   };
 
@@ -482,10 +482,19 @@ class PrivilegeService {
       { name: 'item.update', description: 'Update item information', resource: 'item', action: 'update' },
       { name: 'item.delete', description: 'Delete items', resource: 'item', action: 'delete' },
       
+      // Client privileges (global clients, any org can invoice any client)
+      { name: 'client.create', description: 'Create new clients', resource: 'client', action: 'create' },
+      { name: 'client.read', description: 'View client information', resource: 'client', action: 'read' },
+      { name: 'client.update', description: 'Update client information', resource: 'client', action: 'update' },
+      { name: 'client.delete', description: 'Delete clients', resource: 'client', action: 'delete' },
+      
       // Privilege management
       { name: 'privilege.grant', description: 'Grant privileges to users', resource: 'privilege', action: 'grant' },
       { name: 'privilege.revoke', description: 'Revoke privileges from users', resource: 'privilege', action: 'revoke' },
-      { name: 'privilege.read', description: 'View privilege information', resource: 'privilege', action: 'read' }
+      { name: 'privilege.read', description: 'View privilege information', resource: 'privilege', action: 'read' },
+
+      // Access any branch (no user_branches required; e.g. administrador)
+      { name: 'all', description: 'Access any branch without being in user_branches', resource: 'all', action: 'all' }
     ];
 
     const createdPrivileges = [];

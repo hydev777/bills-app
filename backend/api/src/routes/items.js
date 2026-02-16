@@ -3,7 +3,7 @@ const router = express.Router();
 const Joi = require('joi');
 const { ItemService, ItemCategoryService } = require('../services');
 const { authenticateToken, requirePrivilege } = require('../middleware/auth');
-const { validateOrganization } = require('../middleware/organization');
+const { validateBranch } = require('../middleware/branch');
 
 const itemSchema = Joi.object({
   name: Joi.string().min(1).max(100).required(),
@@ -21,11 +21,11 @@ const updateItemSchema = Joi.object({
   itbis_rate_id: Joi.number().integer().positive()
 });
 
-// GET /api/items - Get all items (org-scoped)
-router.get('/', authenticateToken, validateOrganization, requirePrivilege('item', 'read'), async (req, res) => {
+// GET /api/items - Get all items (branch-scoped)
+router.get('/', authenticateToken, validateBranch, requirePrivilege('item', 'read'), async (req, res) => {
   try {
     const { category, search, limit = 50, offset = 0 } = req.query;
-    const filters = { organization_id: req.organizationId, search, limit, offset };
+    const filters = { branch_id: req.branchId, search, limit, offset };
     if (category) filters.category = category;
     const result = await ItemService.getAllItems(filters);
     res.json(result);
@@ -36,11 +36,11 @@ router.get('/', authenticateToken, validateOrganization, requirePrivilege('item'
 });
 
 // GET /api/items/categories - Get all item categories (must be before /:id)
-router.get('/categories', authenticateToken, validateOrganization, requirePrivilege('item', 'read'), async (req, res) => {
+router.get('/categories', authenticateToken, validateBranch, requirePrivilege('item', 'read'), async (req, res) => {
   try {
     const { limit = 50, offset = 0, includeItemCount = true } = req.query;
     const result = await ItemCategoryService.getAllCategories({
-      organization_id: req.organizationId,
+      branch_id: req.branchId,
       limit,
       offset,
       includeItemCount: includeItemCount === 'true'
@@ -53,7 +53,7 @@ router.get('/categories', authenticateToken, validateOrganization, requirePrivil
 });
 
 // POST /api/items/categories - Create a new category
-router.post('/categories', authenticateToken, validateOrganization, requirePrivilege('item', 'create'), async (req, res) => {
+router.post('/categories', authenticateToken, validateBranch, requirePrivilege('item', 'create'), async (req, res) => {
   try {
     const categorySchema = Joi.object({
       name: Joi.string().min(1).max(50).required(),
@@ -63,7 +63,7 @@ router.post('/categories', authenticateToken, validateOrganization, requirePrivi
     if (error) {
       return res.status(400).json({ error: 'Validation error', details: error.details.map(d => d.message) });
     }
-    value.organization_id = req.organizationId;
+    value.branch_id = req.branchId;
     const category = await ItemCategoryService.createCategory(value);
     res.status(201).json(category);
   } catch (error) {
@@ -74,11 +74,11 @@ router.post('/categories', authenticateToken, validateOrganization, requirePrivi
 });
 
 // GET /api/items/categories/:id - Get specific category
-router.get('/categories/:id', authenticateToken, validateOrganization, requirePrivilege('item', 'read'), async (req, res) => {
+router.get('/categories/:id', authenticateToken, validateBranch, requirePrivilege('item', 'read'), async (req, res) => {
   try {
     const { id } = req.params;
     const { includeItems = false } = req.query;
-    const category = await ItemCategoryService.getCategoryById(id, req.organizationId, includeItems === 'true');
+    const category = await ItemCategoryService.getCategoryById(id, req.branchId, includeItems === 'true');
     if (!category) return res.status(404).json({ error: 'Category not found' });
     res.json(category);
   } catch (error) {
@@ -88,7 +88,7 @@ router.get('/categories/:id', authenticateToken, validateOrganization, requirePr
 });
 
 // PUT /api/items/categories/:id - Update category
-router.put('/categories/:id', authenticateToken, validateOrganization, requirePrivilege('item', 'update'), async (req, res) => {
+router.put('/categories/:id', authenticateToken, validateBranch, requirePrivilege('item', 'update'), async (req, res) => {
   try {
     const { id } = req.params;
     const categorySchema = Joi.object({
@@ -99,7 +99,7 @@ router.put('/categories/:id', authenticateToken, validateOrganization, requirePr
     if (error) {
       return res.status(400).json({ error: 'Validation error', details: error.details.map(d => d.message) });
     }
-    const category = await ItemCategoryService.updateCategory(id, req.organizationId, value);
+    const category = await ItemCategoryService.updateCategory(id, req.branchId, value);
     res.json(category);
   } catch (error) {
     console.error('Error updating category:', error);
@@ -110,10 +110,10 @@ router.put('/categories/:id', authenticateToken, validateOrganization, requirePr
 });
 
 // DELETE /api/items/categories/:id - Delete category
-router.delete('/categories/:id', authenticateToken, validateOrganization, requirePrivilege('item', 'delete'), async (req, res) => {
+router.delete('/categories/:id', authenticateToken, validateBranch, requirePrivilege('item', 'delete'), async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await ItemCategoryService.deleteCategory(id, req.organizationId);
+    const result = await ItemCategoryService.deleteCategory(id, req.branchId);
     res.json({ message: 'Category deleted successfully', category: result });
   } catch (error) {
     console.error('Error deleting category:', error);
@@ -124,10 +124,10 @@ router.delete('/categories/:id', authenticateToken, validateOrganization, requir
 });
 
 // GET /api/items/categories/:id/stats - Get category statistics
-router.get('/categories/:id/stats', authenticateToken, validateOrganization, requirePrivilege('item', 'read'), async (req, res) => {
+router.get('/categories/:id/stats', authenticateToken, validateBranch, requirePrivilege('item', 'read'), async (req, res) => {
   try {
     const { id } = req.params;
-    const stats = await ItemCategoryService.getCategoryStats(id, req.organizationId);
+    const stats = await ItemCategoryService.getCategoryStats(id, req.branchId);
     res.json(stats);
   } catch (error) {
     console.error('Error fetching category stats:', error);
@@ -137,10 +137,10 @@ router.get('/categories/:id/stats', authenticateToken, validateOrganization, req
 });
 
 // GET /api/items/:id - Get a specific item
-router.get('/:id', authenticateToken, validateOrganization, requirePrivilege('item', 'read'), async (req, res) => {
+router.get('/:id', authenticateToken, validateBranch, requirePrivilege('item', 'read'), async (req, res) => {
   try {
     const { id } = req.params;
-    const item = await ItemService.getItemById(id, req.organizationId);
+    const item = await ItemService.getItemById(id, req.branchId);
     if (!item) return res.status(404).json({ error: 'Item not found' });
     res.json(item);
   } catch (error) {
@@ -150,13 +150,13 @@ router.get('/:id', authenticateToken, validateOrganization, requirePrivilege('it
 });
 
 // POST /api/items - Create a new item
-router.post('/', authenticateToken, validateOrganization, async (req, res) => {
+router.post('/', authenticateToken, validateBranch, requirePrivilege('item', 'create'), async (req, res) => {
   try {
     const { error, value } = itemSchema.validate(req.body);
     if (error) {
       return res.status(400).json({ error: 'Validation error', details: error.details.map(d => d.message) });
     }
-    value.organization_id = req.organizationId;
+    value.branch_id = req.branchId;
     const item = await ItemService.createItem(value);
     res.status(201).json(item);
   } catch (error) {
@@ -169,14 +169,14 @@ router.post('/', authenticateToken, validateOrganization, async (req, res) => {
 });
 
 // PUT /api/items/:id - Update an item
-router.put('/:id', authenticateToken, validateOrganization, requirePrivilege('item', 'update'), async (req, res) => {
+router.put('/:id', authenticateToken, validateBranch, requirePrivilege('item', 'update'), async (req, res) => {
   try {
     const { id } = req.params;
     const { error, value } = updateItemSchema.validate(req.body);
     if (error) {
       return res.status(400).json({ error: 'Validation error', details: error.details.map(d => d.message) });
     }
-    const item = await ItemService.updateItem(id, req.organizationId, value);
+    const item = await ItemService.updateItem(id, req.branchId, value);
     res.json(item);
   } catch (error) {
     console.error('Error updating item:', error);
@@ -189,10 +189,10 @@ router.put('/:id', authenticateToken, validateOrganization, requirePrivilege('it
 });
 
 // DELETE /api/items/:id - Delete an item
-router.delete('/:id', authenticateToken, validateOrganization, requirePrivilege('item', 'delete'), async (req, res) => {
+router.delete('/:id', authenticateToken, validateBranch, requirePrivilege('item', 'delete'), async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await ItemService.deleteItem(id, req.organizationId);
+    const result = await ItemService.deleteItem(id, req.branchId);
     res.json({ message: 'Item deleted successfully', item: result });
   } catch (error) {
     console.error('Error deleting item:', error);
@@ -203,10 +203,10 @@ router.delete('/:id', authenticateToken, validateOrganization, requirePrivilege(
 });
 
 // GET /api/items/:id/stats - Get item usage statistics
-router.get('/:id/stats', authenticateToken, validateOrganization, requirePrivilege('item', 'read'), async (req, res) => {
+router.get('/:id/stats', authenticateToken, validateBranch, requirePrivilege('item', 'read'), async (req, res) => {
   try {
     const { id } = req.params;
-    const stats = await ItemService.getItemStats(id, req.organizationId);
+    const stats = await ItemService.getItemStats(id, req.branchId);
     res.json(stats);
   } catch (error) {
     console.error('Error fetching item stats:', error);

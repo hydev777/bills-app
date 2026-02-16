@@ -5,15 +5,15 @@ class BranchService {
    * Get all active branches
    * @returns {Promise<Array>} List of active branches
    */
-  async getAllBranches(organizationId) {
-    if (!organizationId) throw new Error('Organization ID is required');
+  async getAllBranches() {
     return await prisma.branch.findMany({
-      where: { organizationId: parseInt(organizationId), isActive: true },
+      where: { isActive: true },
       orderBy: { name: 'asc' },
       select: {
         id: true,
         name: true,
         code: true,
+        taxId: true,
         address: true,
         phone: true,
         email: true,
@@ -31,13 +31,14 @@ class BranchService {
    * @param {number} branchId - Branch ID
    * @returns {Promise<Object|null>} Branch or null if not found
    */
-  async getBranchById(branchId, organizationId) {
-    return await prisma.branch.findFirst({
-      where: { id: parseInt(branchId), organizationId: parseInt(organizationId) },
+  async getBranchById(branchId) {
+    return await prisma.branch.findUnique({
+      where: { id: parseInt(branchId) },
       select: {
         id: true,
         name: true,
         code: true,
+        taxId: true,
         address: true,
         phone: true,
         email: true,
@@ -66,14 +67,14 @@ class BranchService {
    * @param {string} code - Branch code
    * @returns {Promise<Object|null>} Branch or null if not found
    */
-  async getBranchByCode(code, organizationId) {
-    if (!organizationId) throw new Error('Organization ID is required');
+  async getBranchByCode(code) {
     return await prisma.branch.findFirst({
-      where: { code: code.toUpperCase(), organizationId: parseInt(organizationId) },
+      where: { code: code.toUpperCase() },
       select: {
         id: true,
         name: true,
         code: true,
+        taxId: true,
         address: true,
         phone: true,
         email: true,
@@ -100,6 +101,7 @@ class BranchService {
             id: true,
             name: true,
             code: true,
+            taxId: true,
             address: true,
             phone: true,
             email: true,
@@ -312,15 +314,13 @@ class BranchService {
    * @returns {Promise<Object>} Created branch
    */
   async createBranch(branchData) {
-    const { organization_id, name, code, address, phone, email, isActive = true } = branchData;
-
-    if (!organization_id) throw new Error('Organization ID is required');
+    const { name, code, tax_id, address, phone, email, isActive = true } = branchData;
 
     return await prisma.branch.create({
       data: {
-        organizationId: parseInt(organization_id),
         name,
         code: code.toUpperCase(),
+        taxId: tax_id || null,
         address,
         phone,
         email,
@@ -330,6 +330,7 @@ class BranchService {
         id: true,
         name: true,
         code: true,
+        taxId: true,
         address: true,
         phone: true,
         email: true,
@@ -345,17 +346,18 @@ class BranchService {
    * @param {Object} updateData - Update data
    * @returns {Promise<Object>} Updated branch
    */
-  async updateBranch(branchId, organizationId, updateData) {
-    const { name, code, address, phone, email, isActive } = updateData;
+  async updateBranch(branchId, updateData) {
+    const { name, code, tax_id, address, phone, email, isActive } = updateData;
 
-    const existing = await prisma.branch.findFirst({
-      where: { id: parseInt(branchId), organizationId: parseInt(organizationId) }
+    const existing = await prisma.branch.findUnique({
+      where: { id: parseInt(branchId) }
     });
     if (!existing) throw new Error('Branch not found');
 
     const updateFields = {};
     if (name !== undefined) updateFields.name = name;
     if (code !== undefined) updateFields.code = code.toUpperCase();
+    if (tax_id !== undefined) updateFields.taxId = tax_id || null;
     if (address !== undefined) updateFields.address = address;
     if (phone !== undefined) updateFields.phone = phone;
     if (email !== undefined) updateFields.email = email;
@@ -368,6 +370,7 @@ class BranchService {
         id: true,
         name: true,
         code: true,
+        taxId: true,
         address: true,
         phone: true,
         email: true,

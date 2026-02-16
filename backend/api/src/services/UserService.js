@@ -13,54 +13,43 @@ class UserService {
    * @returns {Promise<Object>} Created user with token
    */
   async registerUser(userData) {
-    const { username, email, password, organizationName } = userData;
+    const { username, email, password } = userData;
 
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    const { user, organization } = await prisma.$transaction(async (tx) => {
-      const org = await tx.organization.create({
-        data: { name: organizationName || `${username}'s organization` }
-      });
-      const existing = await tx.user.findFirst({
-        where: {
-          organizationId: org.id,
-          OR: [{ email }, { username }]
-        }
-      });
-      if (existing) {
-        throw new Error('User already exists with this email or username in this organization');
+    const existing = await prisma.user.findFirst({
+      where: { OR: [{ email }, { username }] }
+    });
+    if (existing) {
+      throw new Error('User already exists with this email or username');
+    }
+
+    const user = await prisma.user.create({
+      data: {
+        username,
+        email,
+        passwordHash,
+        role: 'user'
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        createdAt: true
       }
-      const u = await tx.user.create({
-        data: {
-          organizationId: org.id,
-          username,
-          email,
-          passwordHash,
-          role: 'owner'
-        },
-        select: {
-          id: true,
-          organizationId: true,
-          username: true,
-          email: true,
-          role: true,
-          createdAt: true
-      }
-      });
-      return { user: u, organization: org };
     });
 
     const token = jwt.sign(
-      { userId: user.id, organizationId: user.organizationId, email: user.email },
+      { userId: user.id, email: user.email },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
 
     return {
-      message: 'User and organization created successfully',
-      user: { id: user.id, username: user.username, email: user.email, role: user.role, organizationId: user.organizationId },
-      organization: { id: organization.id, name: organization.name },
+      message: 'User created successfully',
+      user: { id: user.id, username: user.username, email: user.email, role: user.role },
       token
     };
   }
@@ -75,11 +64,8 @@ class UserService {
   async loginUser(loginData) {
     const { email, password } = loginData;
 
-    const user = await prisma.user.findFirst({
-      where: { email },
-      include: {
-        organization: { select: { id: true, name: true } }
-      }
+    const user = await prisma.user.findUnique({
+      where: { email }
     });
 
     if (!user) {
@@ -94,7 +80,7 @@ class UserService {
     const userBranches = await BranchService.getUserBranches(user.id);
 
     const token = jwt.sign(
-      { userId: user.id, organizationId: user.organizationId, email: user.email },
+      { userId: user.id, email: user.email },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
@@ -105,10 +91,8 @@ class UserService {
         id: user.id,
         username: user.username,
         email: user.email,
-        role: user.role,
-        organizationId: user.organizationId
+        role: user.role
       },
-      organization: user.organization,
       accessibleBranches: userBranches.map(ub => ({
         id: ub.branch.id,
         name: ub.branch.name,
@@ -131,25 +115,17 @@ class UserService {
   async loginUserToBranch(loginData) {
     const { email, password, branchId } = loginData;
 
-    const user = await prisma.user.findFirst({
-      where: { email },
-      include: { organization: { select: { id: true, name: true } } }
+    const user = await prisma.user.findUnique({
+      where: { email }
     });
     if (!user) throw new Error('Invalid credentials');
 
-    // Verify password
     const isValidPassword = await bcrypt.compare(password, user.passwordHash);
-    
     if (!isValidPassword) {
       throw new Error('Invalid credentials');
     }
 
-    // Check if user can access the specified branch
-    const canAccess = await BranchService.canUserLoginToBranch(user.id, branchId);
-    if (!canAccess) throw new Error('You do not have permission to access this branch');
-
-    const branch = await BranchService.getBranchById(branchId, user.organizationId);
-    
+    const branch = await BranchService.getBranchById(branchId);
     if (!branch) {
       throw new Error('Branch not found');
     }
@@ -158,8 +134,11 @@ class UserService {
       throw new Error('Branch is not active');
     }
 
+    const canAccess = await BranchService.canUserLoginToBranch(user.id, branchId);
+    if (!canAccess) throw new Error('You do not have permission to access this branch');
+
     const token = jwt.sign(
-      { userId: user.id, organizationId: user.organizationId, email: user.email, branchId: branch.id },
+      { userId: user.id, email: user.email, branchId: branch.id },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
@@ -169,10 +148,8 @@ class UserService {
       user: {
         id: user.id,
         username: user.username,
-        email: user.email,
-        organizationId: user.organizationId
+        email: user.email
       },
-      organization: user.organization,
       branch: {
         id: branch.id,
         name: branch.name,
@@ -238,7 +215,6 @@ class UserService {
       where: { id: parseInt(id) },
       select: {
         id: true,
-        organizationId: true,
         username: true,
         email: true,
         role: true,
@@ -249,22 +225,18 @@ class UserService {
   }
 
   /**
-   * Create user in an organization (invite/add user to existing org).
-   * @param {number} organizationId - Organization ID
+   * Create user (global; no organization).
    * @param {Object} userData - username, email, password
-   * @param {number} grantedBy - User ID of creator (owner/admin)
+   * @param {number} grantedBy - User ID of creator (optional)
    */
-  async createUserInOrganization(organizationId, userData, grantedBy) {
+  async createUser(userData, grantedBy) {
     const { username, email, password } = userData;
 
     const existing = await prisma.user.findFirst({
-      where: {
-        organizationId: parseInt(organizationId),
-        OR: [{ email }, { username }]
-      }
+      where: { OR: [{ email }, { username }] }
     });
     if (existing) {
-      throw new Error('User already exists with this email or username in this organization');
+      throw new Error('User already exists with this email or username');
     }
 
     const saltRounds = 12;
@@ -272,7 +244,6 @@ class UserService {
 
     const user = await prisma.user.create({
       data: {
-        organizationId: parseInt(organizationId),
         username,
         email,
         passwordHash,
@@ -280,7 +251,6 @@ class UserService {
       },
       select: {
         id: true,
-        organizationId: true,
         username: true,
         email: true,
         role: true,
@@ -298,16 +268,12 @@ class UserService {
    * @param {number} options.offset - Offset for pagination (default: 0)
    * @returns {Promise<Object>} Users with pagination info
    */
-  async getAllUsers(organizationId, options = {}) {
+  async getAllUsers(options = {}) {
     const { limit = 50, offset = 0 } = options;
 
-    const where = { organizationId: parseInt(organizationId) };
-
     const users = await prisma.user.findMany({
-      where,
       select: {
         id: true,
-        organizationId: true,
         username: true,
         email: true,
         role: true,
@@ -315,17 +281,17 @@ class UserService {
         _count: { bills: true }
       },
       orderBy: { createdAt: 'desc' },
-      take: parseInt(limit),
-      skip: parseInt(offset)
+      take: Math.min(100, Math.max(1, parseInt(limit, 10) || 50)),
+      skip: Math.max(0, parseInt(offset, 10) || 0)
     });
 
-    const total = await prisma.user.count({ where });
+    const total = await prisma.user.count();
 
     return {
       users: users.map(u => ({ ...u, total_bills: u._count.bills })),
       total,
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+      limit: Math.min(100, Math.max(1, parseInt(limit, 10) || 50)),
+      offset: Math.max(0, parseInt(offset, 10) || 0)
     };
   }
 
@@ -335,11 +301,11 @@ class UserService {
    * @param {Object} options - Query options
    * @returns {Promise<Object>} User bills with pagination
    */
-  async getUserBills(userId, organizationId, options = {}) {
+  async getUserBills(userId, branchId, options = {}) {
     const { limit = 50, offset = 0 } = options;
 
-    const user = await prisma.user.findFirst({
-      where: { id: parseInt(userId), organizationId: parseInt(organizationId) },
+    const user = await prisma.user.findUnique({
+      where: { id: parseInt(userId) },
       select: { id: true, username: true, email: true }
     });
 
@@ -347,7 +313,7 @@ class UserService {
       throw new Error('User not found');
     }
 
-    const where = { userId: parseInt(userId), organizationId: parseInt(organizationId) };
+    const where = { userId: parseInt(userId), branchId: parseInt(branchId) };
 
     const bills = await prisma.bill.findMany({
       where,
@@ -380,13 +346,14 @@ class UserService {
   }
 
   /**
-   * Get user statistics
+   * Get user statistics (branch-scoped: bills in the given branch only)
    * @param {number} userId - User ID
-   * @returns {Promise<Object>} User statistics
+   * @param {number} branchId - Branch ID
+   * @returns {Promise<Object>} User statistics for that branch
    */
-  async getUserStats(userId, organizationId) {
-    const user = await prisma.user.findFirst({
-      where: { id: parseInt(userId), organizationId: parseInt(organizationId) },
+  async getUserStats(userId, branchId) {
+    const user = await prisma.user.findUnique({
+      where: { id: parseInt(userId) },
       select: { id: true, username: true, email: true }
     });
 
@@ -394,7 +361,7 @@ class UserService {
       throw new Error('User not found');
     }
 
-    const where = { userId: parseInt(userId), organizationId: parseInt(organizationId) };
+    const where = { userId: parseInt(userId), branchId: parseInt(branchId) };
 
     const totalBills = await prisma.bill.count({ where });
 
@@ -406,7 +373,7 @@ class UserService {
 
     const totalBillItems = await prisma.billItem.count({
       where: {
-        bill: { userId: parseInt(userId), organizationId: parseInt(organizationId) }
+        bill: { userId: parseInt(userId), branchId: parseInt(branchId) }
       }
     });
 
@@ -438,18 +405,17 @@ class UserService {
       throw new Error('User not found');
     }
 
-    // Check duplicates within same organization
     if (username && username !== existingUser.username) {
-      const dup = await prisma.user.findFirst({
-        where: { organizationId: existingUser.organizationId, username }
+      const dup = await prisma.user.findUnique({
+        where: { username }
       });
-      if (dup) throw new Error('Username already exists in this organization');
+      if (dup) throw new Error('Username already exists');
     }
     if (email && email !== existingUser.email) {
-      const dup = await prisma.user.findFirst({
-        where: { organizationId: existingUser.organizationId, email }
+      const dup = await prisma.user.findUnique({
+        where: { email }
       });
-      if (dup) throw new Error('Email already exists in this organization');
+      if (dup) throw new Error('Email already exists');
     }
 
     const updateFields = {};

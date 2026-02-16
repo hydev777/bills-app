@@ -3,7 +3,7 @@ const router = express.Router();
 const Joi = require('joi');
 const { BillItemService } = require('../services');
 const { authenticateToken, requirePrivilege } = require('../middleware/auth');
-const { validateOrganization } = require('../middleware/organization');
+const { validateBranch } = require('../middleware/branch');
 
 const billItemSchema = Joi.object({
   bill_id: Joi.number().integer().positive().required(),
@@ -20,10 +20,10 @@ const updateBillItemSchema = Joi.object({
 });
 
 // GET /api/bill-items - Get all bill-item relationships (org-scoped)
-router.get('/', authenticateToken, validateOrganization, requirePrivilege('bill', 'read'), async (req, res) => {
+router.get('/', authenticateToken, validateBranch, requirePrivilege('bill', 'read'), async (req, res) => {
   try {
     const { bill_id, item_id, limit = 50, offset = 0 } = req.query;
-    const filters = { organization_id: req.organizationId, bill_id, item_id, limit, offset };
+    const filters = { branch_id: req.branchId, bill_id, item_id, limit, offset };
     const result = await BillItemService.getAllBillItems(filters);
     res.json(result);
   } catch (error) {
@@ -33,10 +33,10 @@ router.get('/', authenticateToken, validateOrganization, requirePrivilege('bill'
 });
 
 // GET /api/bill-items/stats/summary
-router.get('/stats/summary', authenticateToken, validateOrganization, requirePrivilege('bill', 'read'), async (req, res) => {
+router.get('/stats/summary', authenticateToken, validateBranch, requirePrivilege('bill', 'read'), async (req, res) => {
   try {
     const { bill_id, item_id } = req.query;
-    const filters = { organization_id: req.organizationId, bill_id, item_id };
+    const filters = { branch_id: req.branchId, bill_id, item_id };
     const stats = await BillItemService.getBillItemStats(filters);
     res.json(stats);
   } catch (error) {
@@ -46,9 +46,9 @@ router.get('/stats/summary', authenticateToken, validateOrganization, requirePri
 });
 
 // GET /api/bill-items/bill/:bill_id - Get all items for a bill (before /:id)
-router.get('/bill/:bill_id', authenticateToken, validateOrganization, requirePrivilege('bill', 'read'), async (req, res) => {
+router.get('/bill/:bill_id', authenticateToken, validateBranch, requirePrivilege('bill', 'read'), async (req, res) => {
   try {
-    const result = await BillItemService.getItemsForBill(req.params.bill_id, req.organizationId);
+    const result = await BillItemService.getItemsForBill(req.params.bill_id, req.branchId);
     res.json(result);
   } catch (error) {
     console.error('Error fetching items for bill:', error);
@@ -58,9 +58,9 @@ router.get('/bill/:bill_id', authenticateToken, validateOrganization, requirePri
 });
 
 // GET /api/bill-items/item/:item_id - Get all bills for an item (before /:id)
-router.get('/item/:item_id', authenticateToken, validateOrganization, requirePrivilege('bill', 'read'), async (req, res) => {
+router.get('/item/:item_id', authenticateToken, validateBranch, requirePrivilege('bill', 'read'), async (req, res) => {
   try {
-    const result = await BillItemService.getBillsForItem(req.params.item_id, req.organizationId);
+    const result = await BillItemService.getBillsForItem(req.params.item_id, req.branchId);
     res.json(result);
   } catch (error) {
     console.error('Error fetching bills for item:', error);
@@ -70,9 +70,9 @@ router.get('/item/:item_id', authenticateToken, validateOrganization, requirePri
 });
 
 // GET /api/bill-items/:id
-router.get('/:id', authenticateToken, validateOrganization, requirePrivilege('bill', 'read'), async (req, res) => {
+router.get('/:id', authenticateToken, validateBranch, requirePrivilege('bill', 'read'), async (req, res) => {
   try {
-    const billItem = await BillItemService.getBillItemById(req.params.id, req.organizationId);
+    const billItem = await BillItemService.getBillItemById(req.params.id, req.branchId);
     if (!billItem) return res.status(404).json({ error: 'Bill-item relationship not found' });
     res.json(billItem);
   } catch (error) {
@@ -82,13 +82,13 @@ router.get('/:id', authenticateToken, validateOrganization, requirePrivilege('bi
 });
 
 // POST /api/bill-items - Add item to bill (requires bill.create so cajero can add lines when creating)
-router.post('/', authenticateToken, validateOrganization, requirePrivilege('bill', 'create'), async (req, res) => {
+router.post('/', authenticateToken, validateBranch, requirePrivilege('bill', 'create'), async (req, res) => {
   try {
     const { error, value } = billItemSchema.validate(req.body);
     if (error) {
       return res.status(400).json({ error: 'Validation error', details: error.details.map(d => d.message) });
     }
-    const billItem = await BillItemService.addItemToBill(value, req.organizationId);
+    const billItem = await BillItemService.addItemToBill(value, req.branchId);
     res.status(201).json(billItem);
   } catch (error) {
     console.error('Error creating bill-item:', error);
@@ -101,14 +101,14 @@ router.post('/', authenticateToken, validateOrganization, requirePrivilege('bill
 });
 
 // PUT /api/bill-items/:id
-router.put('/:id', authenticateToken, validateOrganization, requirePrivilege('bill', 'update'), async (req, res) => {
+router.put('/:id', authenticateToken, validateBranch, requirePrivilege('bill', 'update'), async (req, res) => {
   try {
     const { id } = req.params;
     const { error, value } = updateBillItemSchema.validate(req.body);
     if (error) {
       return res.status(400).json({ error: 'Validation error', details: error.details.map(d => d.message) });
     }
-    const billItem = await BillItemService.updateBillItem(id, req.organizationId, value);
+    const billItem = await BillItemService.updateBillItem(id, req.branchId, value);
     res.json(billItem);
   } catch (error) {
     console.error('Error updating bill-item:', error);
@@ -118,9 +118,9 @@ router.put('/:id', authenticateToken, validateOrganization, requirePrivilege('bi
 });
 
 // DELETE /api/bill-items/:id
-router.delete('/:id', authenticateToken, validateOrganization, requirePrivilege('bill', 'update'), async (req, res) => {
+router.delete('/:id', authenticateToken, validateBranch, requirePrivilege('bill', 'update'), async (req, res) => {
   try {
-    const result = await BillItemService.removeItemFromBill(req.params.id, req.organizationId);
+    const result = await BillItemService.removeItemFromBill(req.params.id, req.branchId);
     res.json(result);
   } catch (error) {
     console.error('Error deleting bill-item:', error);

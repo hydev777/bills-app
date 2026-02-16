@@ -2,50 +2,51 @@
 
 Este documento describe qué tiene hoy el proyecto y qué suele considerarse parte de un **sistema de facturación básico**, para que puedas ver si te basta o qué te falta.
 
+**Alcance actual:** alcance por **sucursal (branch)**; no hay tabla de organizaciones. Usuarios y sucursales son globales; facturas, ítems y categorías pertenecen a una sucursal.
+
 ---
 
-## Lo que ya tienes (y es suficiente para algo muy básico)
+## Lo que ya tienes implementado
 
 | Funcionalidad | Estado | Detalle |
 |---------------|--------|---------|
-| **Organizaciones** | ✅ | Varios negocios (tenancy) en la misma app. |
-| **Usuarios y autenticación** | ✅ | Registro, login, JWT. |
-| **Facturas (bills)** | ✅ | Crear, editar, listar, eliminar. Título, descripción, monto. |
+| **Usuarios y autenticación** | ✅ | Registro, login, JWT. Login por sucursal (`login-branch`). |
+| **Facturas (bills)** | ✅ | Crear, editar, listar, eliminar. Título, descripción. Por sucursal (header `X-Branch-Id`). |
 | **Usuario creador** | ✅ | Cada factura guarda quién la creó (`user_id`). |
 | **ID único por factura** | ✅ | `publicId` (UUID) para identificar la factura sin exponer el ID interno. |
-| **Catálogo de productos/servicios** | ✅ | Items con nombre, precio unitario, categorías. |
+| **Cliente / destinatario** | ✅ | Tabla `clients` (global). Factura tiene `client_id` opcional; si es null = factura “al contado”. |
+| **Estado de la factura** | ✅ | Estados: `draft`, `issued`, `paid`, `cancelled`. Por defecto `draft`. |
+| **Catálogo de productos/servicios** | ✅ | Items por sucursal, con nombre, precio unitario, categorías e **ITBIS** (tasa por ítem). |
 | **Líneas de factura** | ✅ | Añadir ítems a una factura con cantidad, precio unitario y total por línea. |
-| **Totales por factura** | ✅ | Se puede obtener el total calculado desde las líneas (`/api/bill-items/bill/:bill_id` devuelve `calculated_total`). |
-| **Sucursales y permisos** | ✅ | Branches y privilegios por recurso. |
-| **Estadísticas** | ✅ | Resúmenes de facturas, ítems, etc. |
+| **Total de la factura = líneas** | ✅ | `subtotal`, `tax_amount` (ITBIS) y `amount` (total) se **recalculan automáticamente** al añadir, editar o quitar líneas. No se envían a mano. |
+| **Desglose de impuestos** | ✅ | A nivel factura: `subtotal`, `tax_amount`, `amount`. El ITBIS se calcula por línea según la tasa del ítem. |
+| **Datos fiscales emisor** | ✅ | Sucursal (branch) tiene **`tax_id`** opcional (RNC/CIF/NIF) para imprimir en la factura. |
+| **Datos fiscales cliente** | ✅ | Cliente tiene **`tax_id`** opcional (identificador fiscal del comprador). |
+| **Sucursales y permisos** | ✅ | Branches, privilegios por recurso, privilegio `all` (acceso a cualquier sucursal). |
+| **Estadísticas** | ✅ | Resúmenes de facturas, ítems, categorías. |
 
 Con esto puedes:
-- Dar de alta usuarios y organizaciones.
-- Crear facturas y asignarles ítems con cantidades y precios.
-- Saber quién creó cada factura y tener un identificador único.
-- Consultar totales a partir de las líneas.
+- Dar de alta usuarios y sucursales.
+- Crear facturas por sucursal, asignar cliente (opcional) e ítems con cantidades y precios.
+- Ver totales y desglose (subtotal, impuesto, total) siempre alineados con las líneas.
+- Usar datos fiscales (tax_id) de sucursal y cliente para la factura.
 
 ---
 
-## Lo que suele faltar para un “sistema de facturación básico” completo
-
-En muchos entornos, un sistema de facturación básico incluye además:
+## Lo que aún falta para un “básico completo” o uso real
 
 | Funcionalidad | Estado actual | Comentario |
 |---------------|----------------|------------|
-| **Cliente / destinatario** | ❌ No existe | No hay entidad “cliente” (nombre, NIF/RFC, dirección). La factura solo tiene título/descripción y usuario creador. |
-| **Número de factura legible** | ⚠️ Parcial | Existe `publicId` (UUID), pero no un número secuencial tipo `FAC-2025-0001` por organización. |
-| **Estado de la factura** | ✅ Implementado | Estados: `draft`, `issued`, `paid`, `cancelled`. Por defecto `draft`. |
-| **Fecha de factura / vencimiento** | ⚠️ Parcial | Solo `created_at`; no hay “fecha de factura” ni “fecha de vencimiento” explícitas. |
-| **Impuestos (IVA, etc.)** | ❌ No existe | No hay campo de IVA ni desglose subtotal / impuestos / total. |
-| **Datos del emisor** | ⚠️ Parcial | La organización solo tiene `name`. No hay dirección fiscal, RFC/CIF, etc. para imprimir en la factura. |
-| **Total de la factura vs. líneas** | ⚠️ A revisar | El `amount` de la factura se envía manualmente al crear/actualizar; no se recalcula solo con las líneas. Puede haber diferencia con la suma de `bill_items`. |
+| **Número de factura legible** | ⚠️ Parcial | Existe `publicId` (UUID), pero no un número secuencial por sucursal (ej. `FAC-2025-0001`) para referencia humana y legal. |
+| **Fecha de factura / vencimiento** | ⚠️ Parcial | Solo `created_at` / `updated_at`; no hay campo “fecha de factura” ni “fecha de vencimiento”. |
+| **Comprobante imprimible / PDF** | ❌ No existe | No hay endpoint ni servicio para generar la factura en PDF o vista para imprimir. |
+| **Frontend** | ❌ No existe | La app Flutter es plantilla por defecto; no hay pantallas de facturas, clientes ni flujo de caja. |
 
 ---
 
 ## Conclusión
 
-- **Para uso interno o pruebas**: lo que hay puede ser suficiente (facturas, ítems, líneas, total calculado, usuario creador, ID único).
-- **Para facturación “de verdad” (clientes, numeración, estados, impuestos, impresión/PDF)**: faltan clientes, número de factura, estado, y opcionalmente fechas, IVA y datos fiscales del emisor.
+- **Para uso interno o pruebas:** lo implementado es suficiente (facturas, líneas, total desde líneas, desglose de impuestos, cliente, estados, datos fiscales emisor y cliente).
+- **Para facturación “de verdad” (referencia legal, plazos, entrega al cliente):** faltan número de factura secuencial, fechas de factura/vencimiento, generación de PDF (o impresión) y, para uso sin API, un frontend.
 
-Si quieres, el siguiente paso puede ser diseñar e implementar solo lo mínimo que te falte (por ejemplo: clientes, número de factura y estado).
+Si quieres, el siguiente paso puede ser: número de factura secuencial por sucursal, fechas en la factura y generación de PDF.

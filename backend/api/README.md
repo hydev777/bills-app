@@ -5,10 +5,11 @@ A Node.js REST API for managing bills, users, and items with JWT authentication,
 ## 🚀 Features
 
 - **User Authentication**: JWT-based auth with bcrypt; register, login, login-branch
-- **Bill Management**: CRUD for bills (per user) with filtering and pagination
-- **Item Management**: Global catalog of items and categories
-- **Bill Details**: Many-to-many bills–items with quantities and prices
-- **Branches & Privileges**: Branches (sucursales), user–branch access, privilege-based authorization
+- **Bill Management**: CRUD for bills (per branch; header `X-Branch-Id`). Totals (`subtotal`, `tax_amount`, `amount`) recalculated from line items. Status: draft/issued/paid/cancelled.
+- **Item Management**: Per-branch catalog of items and categories; each item has an ITBIS rate
+- **Bill Details**: Many-to-many bills–items with quantities and prices; bill totals sync automatically
+- **Branches & Privileges**: Branches (sucursales) with optional `tax_id` (fiscal ID); user–branch access; privilege `all` for any branch
+- **Clients**: Global client list with optional `tax_id` (fiscal ID) for invoicing
 - **Statistics**: Bill summaries, item/category stats
 - **Input Validation**: Joi validation for all endpoints
 - **Security**: Helmet, CORS, rate limiting
@@ -22,7 +23,8 @@ api/
 │   ├── config/
 │   │   └── prisma.js          # Prisma client configuration
 │   ├── middleware/
-│   │   └── auth.js            # JWT authentication middleware
+│   │   ├── auth.js            # JWT authentication middleware
+│   │   └── branch.js          # Branch scope (X-Branch-Id) for bills, items, bill-items
 │   ├── routes/
 │   │   ├── bills.js           # Bill management endpoints
 │   │   ├── users.js           # User authentication endpoints

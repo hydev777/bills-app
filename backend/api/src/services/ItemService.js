@@ -11,11 +11,11 @@ class ItemService {
    * @returns {Promise<Object>} Items with pagination info
    */
   async getAllItems(filters = {}) {
-    const { organization_id, category, search, limit = 50, offset = 0 } = filters;
+    const { branch_id, category, search, limit = 50, offset = 0 } = filters;
 
-    if (!organization_id) throw new Error('Organization ID is required');
+    if (!branch_id) throw new Error('Branch ID is required');
 
-    const where = { organizationId: parseInt(organization_id) };
+    const where = { branchId: parseInt(branch_id) };
     if (category) where.categoryId = parseInt(category);
     if (search) {
       where.OR = [
@@ -65,9 +65,9 @@ class ItemService {
    * @param {number} id - Item ID
    * @returns {Promise<Object|null>} Item with related data or null if not found
    */
-  async getItemById(id, organizationId) {
+  async getItemById(id, branchId) {
     return await prisma.item.findFirst({
-      where: { id: parseInt(id), organizationId: parseInt(organizationId) },
+      where: { id: parseInt(id), branchId: parseInt(branchId) },
       include: {
         itbisRate: { select: { id: true, name: true, percentage: true } },
         billItems: {
@@ -100,18 +100,18 @@ class ItemService {
    * @returns {Promise<Object>} Created item
    */
   async createItem(itemData) {
-    const { organization_id, name, description, unit_price, category_id, itbis_rate_id } = itemData;
+    const { branch_id, name, description, unit_price, category_id, itbis_rate_id } = itemData;
 
-    if (!organization_id) throw new Error('Organization ID is required');
+    if (!branch_id) throw new Error('Branch ID is required');
     if (!itbis_rate_id) throw new Error('ITBIS rate is required');
 
     const existingItem = await prisma.item.findFirst({
       where: {
-        organizationId: parseInt(organization_id),
+        branchId: parseInt(branch_id),
         name: { equals: name, mode: 'insensitive' }
       }
     });
-    if (existingItem) throw new Error('Item with this name already exists in this organization');
+    if (existingItem) throw new Error('Item with this name already exists in this branch');
 
     const itbisRate = await prisma.itbisRate.findUnique({
       where: { id: parseInt(itbis_rate_id) }
@@ -120,14 +120,14 @@ class ItemService {
 
     if (category_id) {
       const category = await prisma.itemCategory.findFirst({
-        where: { id: parseInt(category_id), organizationId: parseInt(organization_id) }
+        where: { id: parseInt(category_id), branchId: parseInt(branch_id) }
       });
       if (!category) throw new Error('Category not found');
     }
 
     return await prisma.item.create({
       data: {
-        organizationId: parseInt(organization_id),
+        branchId: parseInt(branch_id),
         name,
         description: description || null,
         unitPrice: unit_price,
@@ -150,11 +150,11 @@ class ItemService {
    * @param {Object} updateData - Update data
    * @returns {Promise<Object>} Updated item
    */
-  async updateItem(id, organizationId, updateData) {
+  async updateItem(id, branchId, updateData) {
     const { name, description, unit_price, category_id, itbis_rate_id } = updateData;
 
     const existingItem = await prisma.item.findFirst({
-      where: { id: parseInt(id), organizationId: parseInt(organizationId) }
+      where: { id: parseInt(id), branchId: parseInt(branchId) }
     });
     if (!existingItem) throw new Error('Item not found');
 
@@ -167,7 +167,7 @@ class ItemService {
 
     if (category_id !== undefined && category_id !== null) {
       const category = await prisma.itemCategory.findFirst({
-        where: { id: parseInt(category_id), organizationId: parseInt(organizationId) }
+        where: { id: parseInt(category_id), branchId: parseInt(branchId) }
       });
       if (!category) throw new Error('Category not found');
     }
@@ -175,12 +175,12 @@ class ItemService {
     if (name && name.toLowerCase() !== existingItem.name.toLowerCase()) {
       const duplicateItem = await prisma.item.findFirst({
         where: {
-          organizationId: parseInt(organizationId),
+          branchId: parseInt(branchId),
           name: { equals: name, mode: 'insensitive' },
           id: { not: parseInt(id) }
         }
       });
-      if (duplicateItem) throw new Error('Item with this name already exists in this organization');
+      if (duplicateItem) throw new Error('Item with this name already exists in this branch');
     }
 
     const updateFields = {};
@@ -254,9 +254,9 @@ class ItemService {
    * @param {number} id - Item ID
    * @returns {Promise<Object>} Item usage statistics
    */
-  async getItemStats(id, organizationId) {
+  async getItemStats(id, branchId) {
     const item = await prisma.item.findFirst({
-      where: { id: parseInt(id), organizationId: parseInt(organizationId) },
+      where: { id: parseInt(id), branchId: parseInt(branchId) },
       include: {
         billItems: {
           include: {
