@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Joi = require('joi');
-const { ClientService } = require('../services');
+const { ClientService, BillService } = require('../services');
 const { authenticateToken, requirePrivilege } = require('../middleware/auth');
+const { validateBranch } = require('../middleware/branch');
 const clientSchema = Joi.object({
   name: Joi.string().min(1).max(100).required(),
   identifier: Joi.string().max(50).allow('', null),
@@ -30,6 +31,25 @@ router.get('/', authenticateToken, requirePrivilege('client', 'read'), async (re
   } catch (error) {
     console.error('Error fetching clients:', error);
     res.status(500).json({ error: 'Failed to fetch clients' });
+  }
+});
+
+// GET /api/clients/:id/bills - Get bills for this client (branch-scoped). Requires X-Branch-Id
+router.get('/:id/bills', authenticateToken, validateBranch, requirePrivilege('bill', 'read'), async (req, res) => {
+  try {
+    const client = await ClientService.getClientById(req.params.id);
+    if (!client) return res.status(404).json({ error: 'Client not found' });
+    const { limit = 50, offset = 0 } = req.query;
+    const result = await BillService.getAllBills({
+      branch_id: req.branchId,
+      client_id: req.params.id,
+      limit,
+      offset
+    });
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching client bills:', error);
+    res.status(500).json({ error: 'Failed to fetch bills for client' });
   }
 });
 
@@ -78,7 +98,7 @@ router.put('/:id', authenticateToken, requirePrivilege('client', 'update'), asyn
   }
 });
 
-// DELETE /api/clients/:id - Delete client
+// DELETE /api/clients/:id - Delete client (fails if client has any bills)
 router.delete('/:id', authenticateToken, requirePrivilege('client', 'delete'), async (req, res) => {
   try {
     const result = await ClientService.deleteClient(req.params.id);
@@ -86,6 +106,7 @@ router.delete('/:id', authenticateToken, requirePrivilege('client', 'delete'), a
   } catch (error) {
     console.error('Error deleting client:', error);
     if (error.message === 'Client not found') return res.status(404).json({ error: error.message });
+    if (error.message === 'Cannot delete client that has associated bills') return res.status(400).json({ error: error.message });
     res.status(500).json({ error: 'Failed to delete client' });
   }
 });

@@ -13,10 +13,12 @@ class ClientService {
 
     const where = {};
     if (search && search.trim()) {
+      const term = search.trim();
       where.OR = [
-        { name: { contains: search.trim(), mode: 'insensitive' } },
-        { identifier: { contains: search.trim(), mode: 'insensitive' } },
-        { email: { contains: search.trim(), mode: 'insensitive' } }
+        { name: { contains: term, mode: 'insensitive' } },
+        { identifier: { contains: term, mode: 'insensitive' } },
+        { taxId: { contains: term, mode: 'insensitive' } },
+        { email: { contains: term, mode: 'insensitive' } }
       ];
     }
 
@@ -106,7 +108,7 @@ class ClientService {
   }
 
   /**
-   * Delete a client by ID. Bills referencing this client will have client_id set to null (SET NULL).
+   * Delete a client by ID. Fails if the client has any associated bills.
    * @param {number} id - Client ID
    * @returns {Promise<Object>}
    */
@@ -117,6 +119,13 @@ class ClientService {
       where: { id: parsed }
     });
     if (!existing) throw new Error('Client not found');
+
+    const billsCount = await prisma.bill.count({
+      where: { clientId: parsed }
+    });
+    if (billsCount > 0) {
+      throw new Error('Cannot delete client that has associated bills');
+    }
 
     await prisma.client.delete({
       where: { id: parsed }
