@@ -2,7 +2,7 @@
 -- Migration to add privilege-based authorization system
 
 -- Create privileges table
-CREATE TABLE privileges (
+CREATE TABLE IF NOT EXISTS privileges (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
     description VARCHAR(255),
@@ -17,12 +17,12 @@ CREATE TABLE privileges (
 );
 
 -- Create indexes for privileges table
-CREATE INDEX idx_privileges_resource ON privileges(resource);
-CREATE INDEX idx_privileges_action ON privileges(action);
-CREATE INDEX idx_privileges_is_active ON privileges(is_active);
+CREATE INDEX IF NOT EXISTS idx_privileges_resource ON privileges(resource);
+CREATE INDEX IF NOT EXISTS idx_privileges_action ON privileges(action);
+CREATE INDEX IF NOT EXISTS idx_privileges_is_active ON privileges(is_active);
 
 -- Create user_privileges table (junction table)
-CREATE TABLE user_privileges (
+CREATE TABLE IF NOT EXISTS user_privileges (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
     privilege_id INTEGER NOT NULL,
@@ -43,13 +43,14 @@ CREATE TABLE user_privileges (
 );
 
 -- Create indexes for user_privileges table
-CREATE INDEX idx_user_privileges_user_id ON user_privileges(user_id);
-CREATE INDEX idx_user_privileges_privilege_id ON user_privileges(privilege_id);
-CREATE INDEX idx_user_privileges_is_active ON user_privileges(is_active);
-CREATE INDEX idx_user_privileges_expires_at ON user_privileges(expires_at);
+CREATE INDEX IF NOT EXISTS idx_user_privileges_user_id ON user_privileges(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_privileges_privilege_id ON user_privileges(privilege_id);
+CREATE INDEX IF NOT EXISTS idx_user_privileges_is_active ON user_privileges(is_active);
+CREATE INDEX IF NOT EXISTS idx_user_privileges_expires_at ON user_privileges(expires_at);
 
--- Insert default privileges
-INSERT INTO privileges (name, description, resource, action) VALUES
+-- Insert default privileges (skip if already exist to allow re-run)
+INSERT INTO privileges (name, description, resource, action)
+SELECT name, description, resource, action FROM (VALUES
 -- Branch privileges
 ('branch.create', 'Create new branches', 'branch', 'create'),
 ('branch.read', 'View branch information', 'branch', 'read'),
@@ -80,7 +81,9 @@ INSERT INTO privileges (name, description, resource, action) VALUES
 ('privilege.update', 'Update privilege information', 'privilege', 'update'),
 ('privilege.delete', 'Delete privileges', 'privilege', 'delete'),
 ('privilege.grant', 'Grant privileges to users', 'privilege', 'grant'),
-('privilege.revoke', 'Revoke privileges from users', 'privilege', 'revoke');
+('privilege.revoke', 'Revoke privileges from users', 'privilege', 'revoke')
+) AS v(name, description, resource, action)
+WHERE NOT EXISTS (SELECT 1 FROM privileges LIMIT 1);
 
 -- Create trigger to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -91,7 +94,9 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Apply trigger to privileges table
+-- Apply trigger to privileges table (DROP IF EXISTS so re-run is safe)
+DROP TRIGGER IF EXISTS update_privileges_updated_at ON privileges;
+DROP TRIGGER IF EXISTS update_user_privileges_updated_at ON user_privileges;
 CREATE TRIGGER update_privileges_updated_at 
     BEFORE UPDATE ON privileges 
     FOR EACH ROW 

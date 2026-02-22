@@ -69,7 +69,8 @@ WHERE organization_id IS NOT NULL;
 -- Create index for organization_id in branches
 CREATE INDEX IF NOT EXISTS idx_branches_organization_id ON branches(organization_id);
 
--- Create trigger to update updated_at timestamp for organizations
+-- Create trigger to update updated_at timestamp for organizations (DROP IF EXISTS so re-run is safe)
+DROP TRIGGER IF EXISTS update_organizations_updated_at ON organizations;
 CREATE TRIGGER update_organizations_updated_at 
     BEFORE UPDATE ON organizations 
     FOR EACH ROW 

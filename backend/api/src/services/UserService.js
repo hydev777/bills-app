@@ -1,7 +1,10 @@
 const { prisma } = require('../config/prisma');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { BranchService } = require('./BranchService');
+
+function getBranchService() {
+  return require('./BranchService');
+}
 
 class UserService {
   /**
@@ -77,7 +80,7 @@ class UserService {
       throw new Error('Invalid credentials');
     }
 
-    const userBranches = await BranchService.getUserBranches(user.id);
+    const userBranches = await getBranchService().getUserBranches(user.id);
 
     const token = jwt.sign(
       { userId: user.id, email: user.email },
@@ -125,7 +128,7 @@ class UserService {
       throw new Error('Invalid credentials');
     }
 
-    const branch = await BranchService.getBranchById(branchId);
+    const branch = await getBranchService().getBranchById(branchId);
     if (!branch) {
       throw new Error('Branch not found');
     }
@@ -134,7 +137,7 @@ class UserService {
       throw new Error('Branch is not active');
     }
 
-    const canAccess = await BranchService.canUserLoginToBranch(user.id, branchId);
+    const canAccess = await getBranchService().canUserLoginToBranch(user.id, branchId);
     if (!canAccess) throw new Error('You do not have permission to access this branch');
 
     const token = jwt.sign(

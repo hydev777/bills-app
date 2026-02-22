@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS itbis_rates (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+DROP TRIGGER IF EXISTS update_itbis_rates_updated_at ON itbis_rates;
 CREATE TRIGGER update_itbis_rates_updated_at
     BEFORE UPDATE ON itbis_rates
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -27,6 +28,7 @@ ALTER TABLE items ADD COLUMN IF NOT EXISTS itbis_rate_id INTEGER;
 UPDATE items SET itbis_rate_id = (SELECT id FROM itbis_rates WHERE percentage = 18 LIMIT 1) WHERE itbis_rate_id IS NULL;
 
 ALTER TABLE items ALTER COLUMN itbis_rate_id SET NOT NULL;
+ALTER TABLE items DROP CONSTRAINT IF EXISTS items_itbis_rate_id_fkey;
 ALTER TABLE items ADD CONSTRAINT items_itbis_rate_id_fkey
     FOREIGN KEY (itbis_rate_id) REFERENCES itbis_rates(id) ON DELETE RESTRICT;
 

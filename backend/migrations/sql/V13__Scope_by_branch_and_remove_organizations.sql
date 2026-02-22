@@ -22,6 +22,7 @@ ALTER TABLE bills DROP CONSTRAINT IF EXISTS bills_organization_id_fkey;
 DROP INDEX IF EXISTS idx_bills_organization_id;
 ALTER TABLE bills DROP COLUMN IF EXISTS organization_id;
 
+ALTER TABLE bills DROP CONSTRAINT IF EXISTS bills_branch_id_fkey;
 ALTER TABLE bills ADD CONSTRAINT bills_branch_id_fkey
     FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE RESTRICT;
 CREATE INDEX IF NOT EXISTS idx_bills_branch_id ON bills(branch_id);
@@ -35,6 +36,7 @@ WHERE ic.branch_id IS NULL;
 
 ALTER TABLE item_categories ALTER COLUMN branch_id SET NOT NULL;
 
+ALTER TABLE item_categories DROP CONSTRAINT IF EXISTS item_categories_branch_id_fkey;
 ALTER TABLE item_categories ADD CONSTRAINT item_categories_branch_id_fkey
     FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE RESTRICT;
 CREATE INDEX IF NOT EXISTS idx_item_categories_branch_id ON item_categories(branch_id);
@@ -54,6 +56,7 @@ WHERE i.branch_id IS NULL;
 
 ALTER TABLE items ALTER COLUMN branch_id SET NOT NULL;
 
+ALTER TABLE items DROP CONSTRAINT IF EXISTS items_branch_id_fkey;
 ALTER TABLE items ADD CONSTRAINT items_branch_id_fkey
     FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE RESTRICT;
 CREATE INDEX IF NOT EXISTS idx_items_branch_id ON items(branch_id);

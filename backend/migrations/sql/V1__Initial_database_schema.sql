@@ -1,5 +1,7 @@
 -- Initial database schema migration
--- This migration creates all the base tables and indexes for the bills application
+-- This migration creates all the base tables and indexes for the bills application.
+-- Safe to re-run: uses CREATE TABLE IF NOT EXISTS, CREATE INDEX IF NOT EXISTS,
+-- CREATE OR REPLACE FUNCTION, and DROP TRIGGER IF EXISTS before each CREATE TRIGGER.
 
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (
@@ -72,7 +74,12 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Create triggers to automatically update updated_at
+-- Create triggers to automatically update updated_at (DROP IF EXISTS so re-run is safe)
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+DROP TRIGGER IF EXISTS update_bills_updated_at ON bills;
+DROP TRIGGER IF EXISTS update_item_categories_updated_at ON item_categories;
+DROP TRIGGER IF EXISTS update_items_updated_at ON items;
+DROP TRIGGER IF EXISTS update_bill_details_updated_at ON bill_details;
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_bills_updated_at BEFORE UPDATE ON bills FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_item_categories_updated_at BEFORE UPDATE ON item_categories FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

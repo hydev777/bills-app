@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS company_settings (
 -- Create index for company_settings
 CREATE INDEX IF NOT EXISTS idx_company_settings_organization_id ON company_settings(organization_id);
 
--- Create trigger to update updated_at timestamp for company_settings
+-- Create trigger to update updated_at timestamp for company_settings (DROP IF EXISTS so re-run is safe)
+DROP TRIGGER IF EXISTS update_company_settings_updated_at ON company_settings;
 CREATE TRIGGER update_company_settings_updated_at 
     BEFORE UPDATE ON company_settings 
     FOR EACH ROW 

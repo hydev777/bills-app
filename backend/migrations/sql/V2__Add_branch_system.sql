@@ -35,6 +35,8 @@ CREATE INDEX IF NOT EXISTS idx_user_branches_branch_id ON user_branches(branch_i
 CREATE INDEX IF NOT EXISTS idx_user_branches_can_login ON user_branches(can_login);
 CREATE INDEX IF NOT EXISTS idx_user_branches_is_primary ON user_branches(is_primary);
 
--- Create triggers to automatically update updated_at
+-- Create triggers to automatically update updated_at (DROP IF EXISTS so re-run is safe)
+DROP TRIGGER IF EXISTS update_branches_updated_at ON branches;
+DROP TRIGGER IF EXISTS update_user_branches_updated_at ON user_branches;
 CREATE TRIGGER update_branches_updated_at BEFORE UPDATE ON branches FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_user_branches_updated_at BEFORE UPDATE ON user_branches FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

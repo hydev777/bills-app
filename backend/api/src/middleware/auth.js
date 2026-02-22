@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { prisma } = require('../config/prisma');
 const { BranchService, PrivilegeService } = require('../services');
+const { logger } = require('../utils/logger');
 
 /**
  * JWT Authentication Middleware
@@ -43,7 +44,7 @@ const authenticateToken = async (req, res, next) => {
     req.userId = user.id;
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
+    logger.warn('Auth middleware error:', error.message);
     
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({ 
@@ -199,7 +200,7 @@ const authenticateBranchAccess = async (req, res, next) => {
     
     next();
   } catch (error) {
-    console.error('Branch auth middleware error:', error);
+    logger.warn('Branch auth middleware error:', error.message);
     
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({ 
@@ -267,7 +268,7 @@ const requirePrivilege = (resource, action) => {
 
       next();
     } catch (error) {
-      console.error('Privilege middleware error:', error);
+      logger.warn('Privilege middleware error:', error.message);
       res.status(500).json({ 
         error: 'Authorization error', 
         message: 'Failed to check privileges' 
@@ -304,7 +305,7 @@ const requireAnyPrivilege = (privileges) => {
 
       next();
     } catch (error) {
-      console.error('Privilege middleware error:', error);
+      logger.warn('Privilege middleware error:', error.message);
       res.status(500).json({ 
         error: 'Authorization error', 
         message: 'Failed to check privileges' 
@@ -347,7 +348,7 @@ const requireAllPrivileges = (privileges) => {
 
       next();
     } catch (error) {
-      console.error('Privilege middleware error:', error);
+      logger.warn('Privilege middleware error:', error.message);
       res.status(500).json({ 
         error: 'Authorization error', 
         message: 'Failed to check privileges' 
@@ -383,7 +384,7 @@ const grantPrivilege = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Grant privilege middleware error:', error);
+    logger.error('Grant privilege middleware error:', error.message);
     res.status(500).json({ 
       error: 'Authorization error', 
       message: 'Failed to check grant privileges' 
@@ -416,7 +417,7 @@ const revokePrivilege = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Revoke privilege middleware error:', error);
+    logger.error('Revoke privilege middleware error:', error.message);
     res.status(500).json({ 
       error: 'Authorization error', 
       message: 'Failed to check revoke privileges' 

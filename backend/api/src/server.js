@@ -1,9 +1,13 @@
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
 
+// Load .env from api/ directory (parent of src/)
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
+const { logger, requestLogger } = require('./utils/logger');
 const billRoutes = require('./routes/bills');
 const userRoutes = require('./routes/users');
 const itemRoutes = require('./routes/items');
@@ -33,6 +37,9 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Request logging (method, path, status, duration)
+app.use(requestLogger);
+
 // Routes
 app.use('/api/bills', billRoutes);
 app.use('/api/users', userRoutes);
@@ -54,7 +61,7 @@ app.get('/health', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  logger.error('Unhandled error:', err.message, err.stack);
   res.status(500).json({ 
     error: 'Something went wrong!',
     message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
@@ -71,11 +78,11 @@ const startServer = async () => {
   try {
     await connectDB();
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📊 Health check: http://localhost:${PORT}/health`);
+      logger.info('Server running on port', PORT);
+      logger.info('Health check: http://localhost:' + PORT + '/health');
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logger.error('Failed to start server:', error.message, error.stack);
     process.exit(1);
   }
 };
