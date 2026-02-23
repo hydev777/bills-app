@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:app/features/products/presentation/bloc/products_bloc.dart';
 import 'package:app/features/products/presentation/bloc/products_event.dart';
 import 'package:app/features/products/presentation/bloc/products_state.dart';
+import 'package:app/features/products/domain/entities/item_entity.dart';
 import 'package:app/features/products/presentation/widgets/error_with_retry.dart';
 import 'package:app/features/products/presentation/widgets/product_form_widget.dart';
 import 'package:app/features/products/presentation/widgets/product_list_widget.dart';
@@ -51,6 +52,53 @@ class _ProductsViewState extends State<ProductsView> {
     );
   }
 
+  Widget _buildListWithOverlay(List<ItemEntity> items) {
+    return Stack(
+      children: [
+        ProductListWidget(
+          items: items,
+          onProductTap: (item) => _openEditSheet(context, item),
+        ),
+        const Center(child: CircularProgressIndicator()),
+      ],
+    );
+  }
+
+  void _openEditSheet(BuildContext context, ItemEntity item) {
+    final state = context.read<ProductsBloc>().state;
+    if (state is! ProductsLoadedState && state is! ProductsUpdateLoading) return;
+    final categories = state is ProductsLoadedState ? state.categories : (state as ProductsUpdateLoading).categories;
+    final itbisRates = state is ProductsLoadedState ? state.itbisRates : (state as ProductsUpdateLoading).itbisRates;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => ProductFormWidget(
+        initialItem: item,
+        categories: categories,
+        itbisRates: itbisRates,
+        onUpdate: ({
+          required int id,
+          required String name,
+          String? description,
+          required double unitPrice,
+          int? categoryId,
+          required int itbisRateId,
+        }) {
+          sl<ProductsBloc>().add(ProductUpdateRequested(
+            id: id,
+            name: name,
+            description: description,
+            unitPrice: unitPrice,
+            categoryId: categoryId,
+            itbisRateId: itbisRateId,
+          ));
+          Navigator.of(ctx).pop();
+        },
+        onCancel: () => Navigator.of(ctx).pop(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
@@ -71,15 +119,16 @@ class _ProductsViewState extends State<ProductsView> {
               );
             }
             if (state is ProductsCreateLoading) {
-              return Stack(
-                children: [
-                  ProductListWidget(items: state.items),
-                  const Center(child: CircularProgressIndicator()),
-                ],
-              );
+              return _buildListWithOverlay(state.items);
+            }
+            if (state is ProductsUpdateLoading) {
+              return _buildListWithOverlay(state.items);
             }
             if (state is ProductsLoadedState) {
-              return ProductListWidget(items: state.items);
+              return ProductListWidget(
+                items: state.items,
+                onProductTap: (item) => _openEditSheet(context, item),
+              );
             }
             return const SizedBox.shrink();
           },

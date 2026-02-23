@@ -119,6 +119,35 @@ class ProductsRepositoryImpl implements ProductsRepository {
     }
   }
 
+  @override
+  Future<Result<ItemEntity, Failure>> updateItem(
+    int id, {
+    String? name,
+    String? description,
+    double? unitPrice,
+    int? categoryId,
+    int? itbisRateId,
+  }) async {
+    try {
+      final item = await _remote.updateItem(
+        id,
+        name: name,
+        description: description,
+        unitPrice: unitPrice,
+        categoryId: categoryId,
+        itbisRateId: itbisRateId,
+      );
+      return success(item.toEntity());
+    } on DioException catch (e) {
+      final msg = e.response?.data is Map
+          ? (e.response?.data as Map)['error']?.toString() ?? _messageFromDio(e)
+          : _messageFromDio(e);
+      return failure(ServerFailure(message: msg));
+    } catch (e) {
+      return failure(ServerFailure(message: e.toString()));
+    }
+  }
+
   String _messageFromDio(DioException e) {
     final m = e.message;
     if (m != null && m.isNotEmpty) return m;

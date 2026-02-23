@@ -73,4 +73,26 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
     if (data == null) throw DioException(requestOptions: response.requestOptions, message: 'Empty response');
     return ItemModel.fromJson(data);
   }
+
+  @override
+  Future<ItemModel> updateItem(
+    int id, {
+    String? name,
+    String? description,
+    double? unitPrice,
+    int? categoryId,
+    int? itbisRateId,
+  }) async {
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+    if (description != null) body['description'] = description;
+    if (unitPrice != null) body['unit_price'] = unitPrice;
+    if (categoryId != null) body['category_id'] = categoryId;
+    if (itbisRateId != null) body['itbis_rate_id'] = itbisRateId;
+
+    final response = await _dio.put<Map<String, dynamic>>('/api/items/$id', data: body);
+    final data = response.data;
+    if (data == null) throw DioException(requestOptions: response.requestOptions, message: 'Empty response');
+    return ItemModel.fromJson(data);
+  }
 }

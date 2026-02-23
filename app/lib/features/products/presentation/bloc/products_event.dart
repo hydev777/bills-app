@@ -31,3 +31,25 @@ final class ProductCreateRequested extends ProductsEvent {
   @override
   List<Object?> get props => [name, description, unitPrice, categoryId, itbisRateId];
 }
+
+/// Submit edit product form.
+final class ProductUpdateRequested extends ProductsEvent {
+  const ProductUpdateRequested({
+    required this.id,
+    required this.name,
+    this.description,
+    required this.unitPrice,
+    this.categoryId,
+    required this.itbisRateId,
+  });
+
+  final int id;
+  final String name;
+  final String? description;
+  final double unitPrice;
+  final int? categoryId;
+  final int itbisRateId;
+
+  @override
+  List<Object?> get props => [id, name, description, unitPrice, categoryId, itbisRateId];
+}

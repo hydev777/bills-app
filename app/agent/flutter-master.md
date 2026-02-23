@@ -9,7 +9,7 @@ Documento único de referencia para la estructura, código limpio y rendimiento 
 - **Feature-first**: cada funcionalidad vive en `lib/features/<feature>/`.
 - **Clean Architecture**: capas `data` → `domain` → `presentation` dentro de cada feature.
 - **Inyección**: `GetIt` en `injection.dart`; registrar datasources, repositories, use cases y BLoCs.
-- **Estado**: BLoC/Cubit para lógica de presentación; eventos y estados inmutables.
+- **Estado**: Cubit como primera opción; Bloc solo cuando se especifique. Estados modelados con **enum** por defecto; sealed classes solo cuando se especifique.
 - **Resultado/errores**: `Result<T, Failure>` en dominio; no propagar excepciones crudas a la UI.
 - **DRY**: no código repetido; extraer widgets y lógica reutilizable.
 - **Never nest**: máximo 2–3 niveles de anidación; early return y widgets extraídos.
@@ -17,6 +17,9 @@ Documento único de referencia para la estructura, código limpio y rendimiento 
 - **Widgets en vez de helpers**: usar clases que extiendan `StatelessWidget` para UI reutilizable, no funciones que devuelvan `Widget`.
 - **Const**: usar `const` en widgets y literales que no dependan de estado.
 - **Rendimiento**: listas lazy, buildWhen/BlocSelector, keys cuando haga falta.
+- **Cubit primero**: usar Cubit por defecto para la lógica de presentación; Bloc solo si se pide explícitamente.
+- **Estados con enum**: definir los estados del Cubit/Bloc con enums por defecto; usar clases sealed solo cuando se indique.
+- **Rendimiento Cubit/Bloc**: usar **BlocSelector** cuando solo dependa un campo del estado; **BlocListener** para efectos secundarios (navegación, SnackBar, diálogos); **buildWhen**/ **listenWhen** para controlar cuándo se reconstruye o se escucha.
 
 Cuando añadas o modifiques código, sigue esta guía.
 
@@ -109,7 +112,7 @@ flowchart LR
 - **DataSources**: `<feature>_remote_datasource.dart` / `*_local_datasource.dart`; interfaz sin sufijo, implementación con `_impl`.
 - **Repositories**: contrato en `domain/repositories/<feature>_repository.dart`; implementación en `data/repositories/<feature>_repository_impl.dart`.
 - **Use cases**: verbo + entidad/objeto, por ejemplo `get_session_usecase.dart`, `login_usecase.dart`.
-- **BLoC**: `<feature>_bloc.dart`, `<feature>_event.dart`, `<feature>_state.dart`.
+- **Cubit/Bloc**: por defecto Cubit: `<feature>_cubit.dart`, `<feature>_state.dart`. Si se usa Bloc: `<feature>_bloc.dart`, `<feature>_event.dart`, `<feature>_state.dart`.
 - **Views**: `<pantalla>_view.dart`. Widgets de la feature en `widgets/` con nombre descriptivo.
 
 Cuando añadas una nueva feature, replica esta estructura dentro de `lib/features/<nombre_feature>/`.
@@ -219,6 +222,54 @@ class ProductListWidget extends StatelessWidget { ... }
 
 - Usa `const` en constructores de widgets y en literales que no dependan de estado cuando sea posible. Reduce rebuilts y ayuda al rendimiento. Detalle en la sección 3.2.
 
+## 2.6 Cubit, Bloc y estados
+
+- **Cubit como primera opción**: usar **Cubit** por defecto para la lógica de presentación de cada feature. Es más simple (sin eventos explícitos) y suele ser suficiente. Usar **Bloc** (con eventos y `BlocBuilder`/`BlocListener`) solo cuando se indique explícitamente o cuando el flujo requiera muchos tipos de eventos distintos manejados desde fuera.
+- **Estados con enum**: modelar los estados del Cubit (o Bloc) con un **enum** como primera opción. Ejemplo: `enum ProductsState { initial, loading, loaded, error }`. El estado del Cubit puede ser el enum más datos (p. ej. un objeto que tenga `status: ProductsState` y `products`, `failure`, etc.). Usar **clases sealed** (o clases cerradas) para los estados solo cuando se especifique o cuando el equipo decida ese patrón para una feature concreta.
+
+## 2.7 Buenas prácticas de rendimiento con Cubit/Bloc
+
+Aplicar siempre que se use Cubit o Bloc para minimizar rebuilds y separar responsabilidades entre “reconstruir UI” y “efectos secundarios”.
+
+- **BlocSelector** (o **CubitSelector**): usar cuando la UI solo dependa de **una parte** del estado. El widget solo se reconstruye cuando el valor seleccionado cambia, no en cada emisión del Cubit/Bloc. El valor devuelto por el selector debe ser **inmutable** para que la comparación funcione bien.
+- **BlocListener** (o **CubitListener**): usar para **efectos secundarios** que no son parte del árbol de widgets: navegación, `ScaffoldMessenger.showSnackBar`, diálogos, logs, etc. No usar el listener para reconstruir UI; el listener se ejecuta una vez por cambio de estado cuando corresponda.
+- **listenWhen**: en `BlocListener`/`CubitListener`, usar `listenWhen(previous, current)` para que el callback solo se ejecute cuando interese (p. ej. solo cuando pase a `error` o `success`), evitando reacciones innecesarias.
+- **buildWhen**: en `BlocBuilder`/`CubitBuilder`, usar `buildWhen(previous, current)` para que el builder solo se ejecute cuando el cambio de estado afecte a la UI que se pinta (p. ej. comparar por tipo de estado o por campos concretos).
+- **BlocConsumer** (o **CubitConsumer**): usar cuando en el mismo árbol necesites **a la vez** reaccionar con UI (builder) y con efectos secundarios (listener). Incluye `buildWhen` y `listenWhen` para control fino. Si solo necesitas uno de los dos, usa solo Builder o solo Listener.
+- **Separar Builder y Listener**: no poner lógica de navegación o SnackBar dentro del `builder`; usar un `BlocListener` (o el `listener` de `BlocConsumer`) para eso. Así el builder solo se ocupa de construir widgets y el listener de side effects.
+
+```dart
+// Bueno: BlocSelector cuando solo importa un campo
+CubitSelector<ProductsCubit, ProductsState, List<Product>>(
+  selector: (state) => state.items,
+  builder: (context, items) => ListView.builder(
+    itemCount: items.length,
+    itemBuilder: (context, i) => ProductTile(items[i]),
+  ),
+)
+
+// Bueno: BlocListener para efectos secundarios; listenWhen para filtrar
+CubitListener<ProductsCubit, ProductsState>(
+  listenWhen: (previous, current) =>
+      current.status == ProductsStatus.error && previous?.status != current.status,
+  listener: (context, state) {
+    if (state.failure != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(state.failure!.message)),
+      );
+    }
+  },
+  child: ...,
+)
+
+// Bueno: buildWhen para no reconstruir en cambios irrelevantes
+CubitBuilder<ProductsCubit, ProductsState>(
+  buildWhen: (previous, current) =>
+      previous?.status != current.status || previous?.items != current.items,
+  builder: (context, state) => ...,
+)
+```
+
 ---
 
 # 3. Rendimiento
@@ -285,20 +336,21 @@ children: [
 ],
 ```
 
-## 3.3 Evitar rebuilds innecesarios
+## 3.3 Evitar rebuilds innecesarios (Cubit/Bloc)
 
-- **Extraer widgets**: si solo una parte de la pantalla depende del estado (p. ej. del BLoC), extrae esa parte a un widget hijo. Así solo ese hijo se reconstruye cuando cambia el estado.
-- **BlocBuilder**: usa `buildWhen` para no reconstruir cuando el estado no afecta a la UI que estás mostrando.
+- **Extraer widgets**: si solo una parte de la pantalla depende del estado (p. ej. del Cubit/Bloc), extrae esa parte a un widget hijo. Así solo ese hijo se reconstruye cuando cambia el estado.
+- **BlocSelector / CubitSelector**: cuando la UI solo dependa de un campo o valor derivado del estado, usa el Selector para que el builder se ejecute **solo cuando ese valor cambie**. Evita rebuilds cuando otras partes del estado cambian sin afectar a ese widget. Ver ejemplos en la sección 2.7.
+- **buildWhen**: en `BlocBuilder`/`CubitBuilder`, usa `buildWhen(previous, current)` para no reconstruir cuando el cambio de estado no afecte a lo que muestra el builder (p. ej. mismo tipo de estado o mismos datos visibles).
 
 ```dart
-BlocBuilder<AuthBloc, AuthState>(
+CubitBuilder<AuthCubit, AuthState>(
   buildWhen: (previous, current) =>
-      previous.runtimeType != current.runtimeType,
+      previous?.status != current.status,
   builder: (context, state) { ... },
 )
 ```
 
-- **BlocSelector**: cuando solo necesites un campo del estado, usa `BlocSelector` para que el builder solo se ejecute cuando ese campo cambie.
+- **BlocListener solo para side effects**: no ejecutes navegación, SnackBar o diálogos dentro del `builder`; usa `BlocListener`/`CubitListener` (o el `listener` de `BlocConsumer`) con `listenWhen` si hace falta. Así el builder solo pinta UI y se reducen rebuilds por lógica que no es de construcción.
 
 ## 3.4 Listas largas
 
@@ -323,4 +375,4 @@ ListView.builder(
 
 ---
 
-**Resumen**: preferir **widgets** a funciones que devuelven Widget, usar **const** siempre que se pueda, **extraer widgets** y **buildWhen/BlocSelector** para limitar rebuilds, y **listas lazy** para listas largas.
+**Resumen**: preferir **widgets** a funciones que devuelven Widget, usar **const** siempre que se pueda, **extraer widgets** y **BlocSelector/buildWhen/BlocListener/listenWhen** (sección 2.7) para limitar rebuilds y separar UI de efectos secundarios, y **listas lazy** para listas largas.

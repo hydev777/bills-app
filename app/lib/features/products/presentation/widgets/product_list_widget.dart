@@ -6,9 +6,11 @@ class ProductListWidget extends StatelessWidget {
   const ProductListWidget({
     super.key,
     required this.items,
+    this.onProductTap,
   });
 
   final List<ItemEntity> items;
+  final void Function(ItemEntity item)? onProductTap;
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +54,7 @@ class ProductListWidget extends StatelessWidget {
                 return Padding(
                   key: ValueKey(item.id),
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: _ProductCard(item: item),
+                  child: _ProductCard(item: item, onTap: onProductTap != null ? () => onProductTap!(item) : null),
                 );
               },
               childCount: items.length,
@@ -144,9 +146,10 @@ class _EmptyContent extends StatelessWidget {
 }
 
 class _ProductCard extends StatelessWidget {
-  const _ProductCard({required this.item});
+  const _ProductCard({required this.item, this.onTap});
 
   final ItemEntity item;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +162,7 @@ class _ProductCard extends StatelessWidget {
       shadowColor: Colors.transparent,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        onTap: () {},
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),

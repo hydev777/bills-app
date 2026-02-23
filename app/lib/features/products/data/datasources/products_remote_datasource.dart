@@ -25,4 +25,14 @@ abstract class ProductsRemoteDataSource {
     int? categoryId,
     required int itbisRateId,
   });
+
+  /// PUT /api/items/:id. Body: name?, description?, unit_price?, category_id?, itbis_rate_id?
+  Future<ItemModel> updateItem(
+    int id, {
+    String? name,
+    String? description,
+    double? unitPrice,
+    int? categoryId,
+    int? itbisRateId,
+  });
 }

@@ -17,6 +17,7 @@ import 'package:app/features/products/domain/usecases/create_item_usecase.dart';
 import 'package:app/features/products/domain/usecases/get_categories_usecase.dart';
 import 'package:app/features/products/domain/usecases/get_itbis_rates_usecase.dart';
 import 'package:app/features/products/domain/usecases/get_items_usecase.dart';
+import 'package:app/features/products/domain/usecases/update_item_usecase.dart';
 import 'package:app/features/products/presentation/bloc/products_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
@@ -82,6 +83,9 @@ Future<void> initInjection() async {
   sl.registerLazySingleton<CreateItemUseCase>(
     () => CreateItemUseCase(sl<ProductsRepository>()),
   );
+  sl.registerLazySingleton<UpdateItemUseCase>(
+    () => UpdateItemUseCase(sl<ProductsRepository>()),
+  );
 
   // Products - Presentation
   sl.registerLazySingleton<ProductsBloc>(
@@ -90,6 +94,7 @@ Future<void> initInjection() async {
       getCategoriesUseCase: sl<GetCategoriesUseCase>(),
       getItbisRatesUseCase: sl<GetItbisRatesUseCase>(),
       createItemUseCase: sl<CreateItemUseCase>(),
+      updateItemUseCase: sl<UpdateItemUseCase>(),
     ),
   );
 }

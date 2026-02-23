@@ -53,6 +53,23 @@ final class ProductsCreateLoading extends ProductsState {
   List<Object?> get props => [items, total, categories, itbisRates];
 }
 
+final class ProductsUpdateLoading extends ProductsState {
+  const ProductsUpdateLoading({
+    required this.items,
+    required this.total,
+    required this.categories,
+    required this.itbisRates,
+  });
+
+  final List<ItemEntity> items;
+  final int total;
+  final List<ItemCategoryEntity> categories;
+  final List<ItbisRateEntity> itbisRates;
+
+  @override
+  List<Object?> get props => [items, total, categories, itbisRates];
+}
+
 final class ProductsError extends ProductsState {
   const ProductsError(this.message);
 

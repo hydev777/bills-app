@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:app/features/products/domain/entities/item_category_entity.dart';
+import 'package:app/features/products/domain/entities/item_entity.dart';
 import 'package:app/features/products/domain/entities/itbis_rate_entity.dart';
 
 class ProductFormWidget extends StatefulWidget {
@@ -8,19 +9,30 @@ class ProductFormWidget extends StatefulWidget {
     super.key,
     required this.categories,
     required this.itbisRates,
-    required this.onCreate,
     required this.onCancel,
+    this.initialItem,
+    this.onCreate,
+    this.onUpdate,
   });
 
   final List<ItemCategoryEntity> categories;
   final List<ItbisRateEntity> itbisRates;
+  final ItemEntity? initialItem;
   final void Function({
     required String name,
     String? description,
     required double unitPrice,
     int? categoryId,
     required int itbisRateId,
-  }) onCreate;
+  })? onCreate;
+  final void Function({
+    required int id,
+    required String name,
+    String? description,
+    required double unitPrice,
+    int? categoryId,
+    required int itbisRateId,
+  })? onUpdate;
   final VoidCallback onCancel;
 
   @override
@@ -39,7 +51,27 @@ class _ProductFormWidgetState extends State<ProductFormWidget> {
   @override
   void initState() {
     super.initState();
-    if (widget.itbisRates.length == 1) {
+    final item = widget.initialItem;
+    if (item != null) {
+      _nameController.text = item.name;
+      _descriptionController.text = item.description ?? '';
+      _priceController.text = item.unitPrice.toStringAsFixed(2);
+      for (final c in widget.categories) {
+        if (c.id == item.categoryId) {
+          _selectedCategory = c;
+          break;
+        }
+      }
+      for (final r in widget.itbisRates) {
+        if (r.id == item.itbisRateId) {
+          _selectedItbis = r;
+          break;
+        }
+      }
+      if (_selectedItbis == null && widget.itbisRates.isNotEmpty) {
+        _selectedItbis = widget.itbisRates.first;
+      }
+    } else if (widget.itbisRates.length == 1) {
       _selectedItbis = widget.itbisRates.first;
     }
   }
@@ -67,15 +99,26 @@ class _ProductFormWidgetState extends State<ProductFormWidget> {
       );
       return;
     }
-    widget.onCreate(
-      name: _nameController.text.trim(),
-      description: _descriptionController.text.trim().isEmpty
-          ? null
-          : _descriptionController.text.trim(),
-      unitPrice: price,
-      categoryId: _selectedCategory?.id,
-      itbisRateId: _selectedItbis!.id,
-    );
+    final name = _nameController.text.trim();
+    final description = _descriptionController.text.trim().isEmpty
+        ? null
+        : _descriptionController.text.trim();
+    final categoryId = _selectedCategory?.id;
+    final itbisRateId = _selectedItbis!.id;
+
+    final item = widget.initialItem;
+    if (item != null && widget.onUpdate != null) {
+      widget.onUpdate!(
+        id: item.id,
+        name: name,
+        description: description,
+        unitPrice: price,
+        categoryId: categoryId,
+        itbisRateId: itbisRateId,
+      );
+    } else if (widget.onCreate != null) {
+      widget.onCreate!(name: name, description: description, unitPrice: price, categoryId: categoryId, itbisRateId: itbisRateId);
+    }
     widget.onCancel();
   }
 
@@ -96,7 +139,7 @@ class _ProductFormWidgetState extends State<ProductFormWidget> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Nuevo producto',
+                widget.initialItem != null ? 'Editar producto' : 'Nuevo producto',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
@@ -136,7 +179,7 @@ class _ProductFormWidgetState extends State<ProductFormWidget> {
                 },
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<ItemCategoryEntity>(
+              DropdownButtonFormField<ItemCategoryEntity?>(
                 initialValue: _selectedCategory,
                 decoration: const InputDecoration(
                   labelText: 'Categoría (opcional)',
@@ -144,21 +187,21 @@ class _ProductFormWidgetState extends State<ProductFormWidget> {
                 ),
                 hint: const Text('Sin categoría'),
                 items: [
-                  const DropdownMenuItem<ItemCategoryEntity>(
+                  const DropdownMenuItem<ItemCategoryEntity?>(
                     value: null,
                     child: Text('Sin categoría'),
                   ),
                   ...widget.categories.map(
-                    (c) => DropdownMenuItem(
+                    (c) => DropdownMenuItem<ItemCategoryEntity?>(
                       value: c,
                       child: Text(c.name),
                     ),
                   ),
                 ],
-                onChanged: (v) => setState(() => _selectedCategory = v),
+                onChanged: (selectedCategory) => setState(() => _selectedCategory = selectedCategory),
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<ItbisRateEntity>(
+              DropdownButtonFormField<ItbisRateEntity?>(
                 initialValue: _selectedItbis,
                 decoration: const InputDecoration(
                   labelText: 'Tasa ITBIS',
@@ -166,13 +209,13 @@ class _ProductFormWidgetState extends State<ProductFormWidget> {
                 ),
                 items: widget.itbisRates
                     .map(
-                      (r) => DropdownMenuItem(
+                      (r) => DropdownMenuItem<ItbisRateEntity?>(
                         value: r,
                         child: Text('${r.name} (${r.percentage}%)'),
                       ),
                     )
                     .toList(),
-                onChanged: (v) => setState(() => _selectedItbis = v),
+                onChanged: (selectedRate) => setState(() => _selectedItbis = selectedRate),
               ),
               const SizedBox(height: 24),
               Row(
@@ -185,7 +228,7 @@ class _ProductFormWidgetState extends State<ProductFormWidget> {
                   const SizedBox(width: 8),
                   FilledButton(
                     onPressed: _submit,
-                    child: const Text('Crear'),
+                    child: Text(widget.initialItem != null ? 'Guardar' : 'Crear'),
                   ),
                 ],
               ),

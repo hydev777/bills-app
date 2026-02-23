@@ -4,6 +4,7 @@ import 'package:app/features/products/domain/usecases/create_item_usecase.dart';
 import 'package:app/features/products/domain/usecases/get_categories_usecase.dart';
 import 'package:app/features/products/domain/usecases/get_itbis_rates_usecase.dart';
 import 'package:app/features/products/domain/usecases/get_items_usecase.dart';
+import 'package:app/features/products/domain/usecases/update_item_usecase.dart';
 
 import 'products_event.dart';
 import 'products_state.dart';
@@ -14,19 +15,23 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
     required GetCategoriesUseCase getCategoriesUseCase,
     required GetItbisRatesUseCase getItbisRatesUseCase,
     required CreateItemUseCase createItemUseCase,
+    required UpdateItemUseCase updateItemUseCase,
   })  : _getItemsUseCase = getItemsUseCase,
         _getCategoriesUseCase = getCategoriesUseCase,
         _getItbisRatesUseCase = getItbisRatesUseCase,
         _createItemUseCase = createItemUseCase,
+        _updateItemUseCase = updateItemUseCase,
         super(const ProductsInitial()) {
     on<ProductsLoaded>(_onProductsLoaded);
     on<ProductCreateRequested>(_onProductCreateRequested);
+    on<ProductUpdateRequested>(_onProductUpdateRequested);
   }
 
   final GetItemsUseCase _getItemsUseCase;
   final GetCategoriesUseCase _getCategoriesUseCase;
   final GetItbisRatesUseCase _getItbisRatesUseCase;
   final CreateItemUseCase _createItemUseCase;
+  final UpdateItemUseCase _updateItemUseCase;
 
   Future<void> _onProductsLoaded(
     ProductsLoaded event,
@@ -79,6 +84,40 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
     ));
 
     final result = await _createItemUseCase.call(
+      name: event.name,
+      description: event.description,
+      unitPrice: event.unitPrice,
+      categoryId: event.categoryId,
+      itbisRateId: event.itbisRateId,
+    );
+
+    result.fold(
+      onSuccess: (_) => add(const ProductsLoaded()),
+      onFailure: (f) => emit(ProductsError(f.displayMessage)),
+    );
+  }
+
+  Future<void> _onProductUpdateRequested(
+    ProductUpdateRequested event,
+    Emitter<ProductsState> emit,
+  ) async {
+    final current = state;
+    if (current is! ProductsLoadedState && current is! ProductsUpdateLoading) return;
+
+    final items = current is ProductsLoadedState ? current.items : (current as ProductsUpdateLoading).items;
+    final total = current is ProductsLoadedState ? current.total : (current as ProductsUpdateLoading).total;
+    final categories = current is ProductsLoadedState ? current.categories : (current as ProductsUpdateLoading).categories;
+    final itbisRates = current is ProductsLoadedState ? current.itbisRates : (current as ProductsUpdateLoading).itbisRates;
+
+    emit(ProductsUpdateLoading(
+      items: items,
+      total: total,
+      categories: categories,
+      itbisRates: itbisRates,
+    ));
+
+    final result = await _updateItemUseCase.call(
+      event.id,
       name: event.name,
       description: event.description,
       unitPrice: event.unitPrice,

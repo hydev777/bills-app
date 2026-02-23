@@ -24,6 +24,15 @@ abstract class ProductsRepository {
     int? categoryId,
     required int itbisRateId,
   });
+
+  Future<Result<ItemEntity, Failure>> updateItem(
+    int id, {
+    String? name,
+    String? description,
+    double? unitPrice,
+    int? categoryId,
+    int? itbisRateId,
+  });
 }
 
 class ItemsListResult {
