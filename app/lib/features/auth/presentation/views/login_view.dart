@@ -25,52 +25,13 @@ class LoginView extends StatelessWidget {
                   listener: (context, state) {
                     // Router redirect navigates to /home on AuthAuthenticated
                   },
+                  buildWhen: (previous, current) =>
+                      previous.runtimeType != current.runtimeType,
                   builder: (context, state) {
                     if (state is AuthLoading) {
-                      return const Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircularProgressIndicator(),
-                            SizedBox(height: 16),
-                            Text('Iniciando sesión...'),
-                          ],
-                        ),
-                      );
+                      return const _LoginLoading();
                     }
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          'Facturación',
-                          style: Theme.of(context).textTheme.headlineMedium,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Inicie sesión para continuar',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 32),
-                        const LoginForm(),
-                        if (state is AuthError) ...[
-                          const SizedBox(height: 16),
-                          Text(
-                            state.message,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ],
-                    );
+                    return _LoginContent(state: state);
                   },
                 ),
               ),
@@ -78,6 +39,64 @@ class LoginView extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _LoginLoading extends StatelessWidget {
+  const _LoginLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('Iniciando sesión...'),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoginContent extends StatelessWidget {
+  const _LoginContent({required this.state});
+
+  final AuthState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Facturación',
+          style: theme.textTheme.headlineMedium,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Inicie sesión para continuar',
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 32),
+        const LoginForm(),
+        if (state is AuthError) ...[
+          const SizedBox(height: 16),
+          Text(
+            (state as AuthError).message,
+            style: TextStyle(color: theme.colorScheme.error),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ],
     );
   }
 }

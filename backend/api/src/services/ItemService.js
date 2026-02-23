@@ -28,22 +28,7 @@ class ItemService {
       where,
       include: {
         itbisRate: { select: { id: true, name: true, percentage: true } },
-        billItems: {
-          select: {
-            id: true,
-            quantity: true,
-            totalPrice: true,
-            bill: {
-              select: {
-                id: true,
-                title: true
-              }
-            }
-          }
-        },
-        _count: {
-          billItems: true
-        }
+        category: { select: { id: true, name: true } }
       },
       orderBy: { name: 'asc' },
       take: parseInt(limit),
@@ -70,26 +55,7 @@ class ItemService {
       where: { id: parseInt(id), branchId: parseInt(branchId) },
       include: {
         itbisRate: { select: { id: true, name: true, percentage: true } },
-        billItems: {
-          include: {
-            bill: {
-              select: {
-                id: true,
-                title: true,
-                user: {
-                  select: {
-                    id: true,
-                    username: true
-                  }
-                }
-              }
-            }
-          },
-          orderBy: { createdAt: 'desc' }
-        },
-        _count: {
-          billItems: true
-        }
+        category: { select: { id: true, name: true } }
       }
     });
   }
@@ -136,10 +102,7 @@ class ItemService {
       },
       include: {
         category: true,
-        itbisRate: { select: { id: true, name: true, percentage: true } },
-        _count: {
-          billItems: true
-        }
+        itbisRate: { select: { id: true, name: true, percentage: true } }
       }
     });
   }
@@ -195,23 +158,7 @@ class ItemService {
       data: updateFields,
       include: {
         category: true,
-        itbisRate: { select: { id: true, name: true, percentage: true } },
-        billItems: {
-          select: {
-            id: true,
-            quantity: true,
-            totalPrice: true,
-            bill: {
-              select: {
-                id: true,
-                title: true
-              }
-            }
-          }
-        },
-        _count: {
-          billItems: true
-        }
+        itbisRate: { select: { id: true, name: true, percentage: true } }
       }
     });
   }
@@ -223,19 +170,17 @@ class ItemService {
    */
   async deleteItem(id) {
     const existingItem = await prisma.item.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        _count: {
-          billItems: true
-        }
-      }
+      where: { id: parseInt(id) }
     });
 
     if (!existingItem) {
       throw new Error('Item not found');
     }
 
-    if (existingItem._count.billItems > 0) {
+    const billItemsCount = await prisma.billItem.count({
+      where: { itemId: parseInt(id) }
+    });
+    if (billItemsCount > 0) {
       throw new Error('Cannot delete item that is being used in bills');
     }
 
@@ -256,33 +201,28 @@ class ItemService {
    */
   async getItemStats(id, branchId) {
     const item = await prisma.item.findFirst({
-      where: { id: parseInt(id), branchId: parseInt(branchId) },
-      include: {
-        billItems: {
-          include: {
-            bill: {
-              select: {
-                id: true,
-                amount: true
-              }
-            }
-          }
-        }
-      }
+      where: { id: parseInt(id), branchId: parseInt(branchId) }
     });
 
     if (!item) {
       throw new Error('Item not found');
     }
 
-    const totalRevenue = item.billItems.reduce((sum, bi) => sum + parseFloat(bi.totalPrice), 0);
-    const totalQty = item.billItems.reduce((sum, bi) => sum + bi.quantity, 0);
+    const billItems = await prisma.billItem.findMany({
+      where: { itemId: parseInt(id) },
+      include: {
+        bill: { select: { id: true, amount: true } }
+      }
+    });
+
+    const totalRevenue = billItems.reduce((sum, bi) => sum + parseFloat(bi.totalPrice), 0);
+    const totalQty = billItems.reduce((sum, bi) => sum + bi.quantity, 0);
 
     return {
-      totalUsage: item.billItems.length,
+      totalUsage: billItems.length,
       totalRevenue,
-      averageQuantity: item.billItems.length > 0 ? totalQty / item.billItems.length : 0,
-      recentUsage: item.billItems
+      averageQuantity: billItems.length > 0 ? totalQty / billItems.length : 0,
+      recentUsage: billItems
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         .slice(0, 5)
         .map(bi => ({

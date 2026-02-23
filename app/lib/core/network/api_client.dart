@@ -1,10 +1,11 @@
 import 'package:dio/dio.dart';
 
 import '../constants/api_constants.dart';
+import 'branch_interceptor.dart';
 import 'http_logger_interceptor.dart';
 
 /// Creates a configured Dio instance for the API.
-/// Adds [HttpLoggerInterceptor] to log all requests/responses in debug.
+/// Adds [BranchInterceptor] for X-Branch-Id and [HttpLoggerInterceptor] in debug.
 Dio createApiClient({String? baseUrl}) {
   final dio = Dio(
     BaseOptions(
@@ -14,6 +15,7 @@ Dio createApiClient({String? baseUrl}) {
       headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
     ),
   );
+  dio.interceptors.add(BranchInterceptor());
   dio.interceptors.add(HttpLoggerInterceptor());
   return dio;
 }

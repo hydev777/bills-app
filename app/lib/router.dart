@@ -6,6 +6,7 @@ import 'package:app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:app/features/auth/presentation/views/login_view.dart';
 import 'package:app/features/home/presentation/views/home_shell_view.dart';
 import 'package:app/features/home/presentation/views/placeholder_view.dart';
+import 'package:app/features/products/presentation/views/products_view.dart';
 import 'package:app/injection.dart';
 
 /// Listenable that notifies when [AuthBloc] state changes so GoRouter can re-run redirect.
@@ -69,8 +70,7 @@ void initRouter() {
               ),
               GoRoute(
                 path: 'productos',
-                builder: (context, state) =>
-                    const PlaceholderView(title: 'Productos'),
+                builder: (context, state) => const ProductsView(),
               ),
               GoRoute(
                 path: 'categorias',

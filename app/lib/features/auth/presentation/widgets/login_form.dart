@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:app/core/utils/validation.dart';
 import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:app/features/auth/presentation/bloc/auth_event.dart';
 
@@ -54,7 +55,7 @@ class _LoginFormState extends State<LoginForm> {
               if (value == null || value.trim().isEmpty) {
                 return 'Ingrese su correo';
               }
-              if (!value.contains('@') || !value.contains('.')) {
+              if (!isValidEmail(value.trim())) {
                 return 'Ingrese un correo válido';
               }
               return null;

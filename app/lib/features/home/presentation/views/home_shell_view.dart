@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:app/features/auth/presentation/bloc/auth_event.dart';
-import 'package:app/features/home/presentation/widgets/app_drawer.dart';
+import 'package:app/features/home/presentation/widgets/sidebar_menu.dart';
 import 'package:app/injection.dart';
 
 class HomeShellView extends StatelessWidget {
@@ -27,8 +27,13 @@ class HomeShellView extends StatelessWidget {
           ),
         ],
       ),
-      drawer: const AppDrawer(),
-      body: child,
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SidebarMenu(),
+          Expanded(child: child),
+        ],
+      ),
     );
   }
 }

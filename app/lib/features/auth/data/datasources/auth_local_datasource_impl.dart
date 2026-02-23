@@ -1,12 +1,16 @@
 import 'dart:convert';
 
 import 'package:app/features/auth/data/datasources/auth_local_datasource.dart';
+import 'package:app/features/auth/data/models/branch_model.dart';
+import 'package:app/features/auth/domain/entities/branch_entity.dart';
 import 'package:app/features/auth/domain/entities/session.dart';
 import 'package:app/features/auth/domain/entities/user_entity.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 const _keyToken = 'auth_token';
 const _keyUser = 'auth_user';
+const _keyBranches = 'auth_branches';
+const _keySelectedBranchId = 'auth_selected_branch_id';
 
 class AuthLocalDataSourceImpl extends AuthLocalDataSource {
   AuthLocalDataSourceImpl({FlutterSecureStorage? storage})
@@ -23,6 +27,22 @@ class AuthLocalDataSourceImpl extends AuthLocalDataSource {
       'email': session.user.email,
     });
     await _storage.write(key: _keyUser, value: userJson);
+    final branchesJson = jsonEncode(
+      session.accessibleBranches
+          .map((b) => {
+                'id': b.id,
+                'name': b.name,
+                'code': b.code,
+                'isPrimary': b.isPrimary,
+                'canLogin': b.canLogin,
+              })
+          .toList(),
+    );
+    await _storage.write(key: _keyBranches, value: branchesJson);
+    await _storage.write(
+      key: _keySelectedBranchId,
+      value: session.selectedBranchId?.toString(),
+    );
   }
 
   @override
@@ -37,12 +57,35 @@ class AuthLocalDataSourceImpl extends AuthLocalDataSource {
       username: map['username'] as String,
       email: map['email'] as String,
     );
-    return Session(token: token, user: user);
+
+    List<BranchEntity> branches = [];
+    final branchesStr = await _storage.read(key: _keyBranches);
+    if (branchesStr != null && branchesStr.isNotEmpty) {
+      final list = jsonDecode(branchesStr) as List<dynamic>;
+      branches = list
+          .map((e) => BranchModel.fromJson(e as Map<String, dynamic>).toEntity())
+          .toList();
+    }
+
+    int? selectedBranchId;
+    final branchIdStr = await _storage.read(key: _keySelectedBranchId);
+    if (branchIdStr != null && branchIdStr.isNotEmpty) {
+      selectedBranchId = int.tryParse(branchIdStr);
+    }
+
+    return Session(
+      token: token,
+      user: user,
+      accessibleBranches: branches,
+      selectedBranchId: selectedBranchId,
+    );
   }
 
   @override
   Future<void> clearSession() async {
     await _storage.delete(key: _keyToken);
     await _storage.delete(key: _keyUser);
+    await _storage.delete(key: _keyBranches);
+    await _storage.delete(key: _keySelectedBranchId);
   }
 }

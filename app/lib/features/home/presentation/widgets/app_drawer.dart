@@ -5,7 +5,7 @@ import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:app/features/auth/presentation/bloc/auth_event.dart';
 import 'package:app/injection.dart';
 
-import 'drawer_item_tile.dart';
+import 'home_menu_entries.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -23,7 +23,7 @@ class AppDrawer extends StatelessWidget {
             child: Align(
               alignment: Alignment.bottomLeft,
               child: Text(
-                'Facturación',
+                homeMenuTitle,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -31,51 +31,13 @@ class AppDrawer extends StatelessWidget {
               ),
             ),
           ),
-          DrawerItemTile(
-            icon: Icons.receipt_long,
-            label: 'Facturas',
-            onTap: () {
+          HomeMenuContent(
+            currentPath: GoRouterState.of(context).uri.path,
+            onNavigate: (path) {
               Navigator.of(context).pop();
-              context.go('/home/facturas');
+              context.go(path);
             },
-          ),
-          DrawerItemTile(
-            icon: Icons.people,
-            label: 'Clientes',
-            onTap: () {
-              Navigator.of(context).pop();
-              context.go('/home/clientes');
-            },
-          ),
-          DrawerItemTile(
-            icon: Icons.inventory_2,
-            label: 'Productos',
-            onTap: () {
-              Navigator.of(context).pop();
-              context.go('/home/productos');
-            },
-          ),
-          DrawerItemTile(
-            icon: Icons.category,
-            label: 'Categorías',
-            onTap: () {
-              Navigator.of(context).pop();
-              context.go('/home/categorias');
-            },
-          ),
-          DrawerItemTile(
-            icon: Icons.store,
-            label: 'Sucursales',
-            onTap: () {
-              Navigator.of(context).pop();
-              context.go('/home/sucursales');
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.logout),
-            title: const Text('Cerrar sesión'),
-            onTap: () {
+            onLogout: () {
               Navigator.of(context).pop();
               sl<AuthBloc>().add(const AuthLogoutRequested());
               context.go('/login');

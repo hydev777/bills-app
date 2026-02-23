@@ -9,6 +9,15 @@ import 'package:app/features/auth/domain/usecases/get_session_usecase.dart';
 import 'package:app/features/auth/domain/usecases/login_usecase.dart';
 import 'package:app/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:app/features/products/data/datasources/products_remote_datasource.dart';
+import 'package:app/features/products/data/datasources/products_remote_datasource_impl.dart';
+import 'package:app/features/products/data/repositories/products_repository_impl.dart';
+import 'package:app/features/products/domain/repositories/products_repository.dart';
+import 'package:app/features/products/domain/usecases/create_item_usecase.dart';
+import 'package:app/features/products/domain/usecases/get_categories_usecase.dart';
+import 'package:app/features/products/domain/usecases/get_itbis_rates_usecase.dart';
+import 'package:app/features/products/domain/usecases/get_items_usecase.dart';
+import 'package:app/features/products/presentation/bloc/products_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
 
@@ -49,6 +58,38 @@ Future<void> initInjection() async {
       loginUseCase: sl<LoginUseCase>(),
       logoutUseCase: sl<LogoutUseCase>(),
       getSessionUseCase: sl<GetSessionUseCase>(),
+    ),
+  );
+
+  // Products - Data
+  sl.registerLazySingleton<ProductsRemoteDataSource>(
+    () => ProductsRemoteDataSourceImpl(sl<Dio>()),
+  );
+  sl.registerLazySingleton<ProductsRepository>(
+    () => ProductsRepositoryImpl(sl<ProductsRemoteDataSource>()),
+  );
+
+  // Products - Domain (use cases)
+  sl.registerLazySingleton<GetItemsUseCase>(
+    () => GetItemsUseCase(sl<ProductsRepository>()),
+  );
+  sl.registerLazySingleton<GetCategoriesUseCase>(
+    () => GetCategoriesUseCase(sl<ProductsRepository>()),
+  );
+  sl.registerLazySingleton<GetItbisRatesUseCase>(
+    () => GetItbisRatesUseCase(sl<ProductsRepository>()),
+  );
+  sl.registerLazySingleton<CreateItemUseCase>(
+    () => CreateItemUseCase(sl<ProductsRepository>()),
+  );
+
+  // Products - Presentation
+  sl.registerLazySingleton<ProductsBloc>(
+    () => ProductsBloc(
+      getItemsUseCase: sl<GetItemsUseCase>(),
+      getCategoriesUseCase: sl<GetCategoriesUseCase>(),
+      getItbisRatesUseCase: sl<GetItbisRatesUseCase>(),
+      createItemUseCase: sl<CreateItemUseCase>(),
     ),
   );
 }

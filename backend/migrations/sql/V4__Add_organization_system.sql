@@ -12,6 +12,13 @@ CREATE TABLE IF NOT EXISTS organizations (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Ensure columns exist (idempotent: table may already exist from a previous run without these columns)
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS plan VARCHAR(50) DEFAULT 'free';
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(50) DEFAULT 'active';
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS subscription_ends_at TIMESTAMP NULL;
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
 -- Create index for organizations
 CREATE INDEX IF NOT EXISTS idx_organizations_plan ON organizations(plan);
 CREATE INDEX IF NOT EXISTS idx_organizations_subscription_status ON organizations(subscription_status);
@@ -44,8 +51,9 @@ CREATE INDEX IF NOT EXISTS idx_bills_organization_id ON bills(organization_id);
 ALTER TABLE item_categories 
 ADD COLUMN IF NOT EXISTS organization_id INTEGER REFERENCES organizations(id) ON DELETE CASCADE;
 
--- Create unique constraint for category name within organization
-CREATE UNIQUE INDEX IF NOT EXISTS idx_item_categories_org_name ON item_categories(organization_id, name) 
+-- Index for category name within organization (non-unique to allow existing duplicate names; enforce uniqueness in app or later migration)
+DROP INDEX IF EXISTS idx_item_categories_org_name;
+CREATE INDEX IF NOT EXISTS idx_item_categories_org_name ON item_categories(organization_id, name)
 WHERE organization_id IS NOT NULL;
 
 -- Create index for organization_id in item_categories

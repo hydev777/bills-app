@@ -33,7 +33,7 @@ class BranchService {
    */
   async getBranchById(branchId) {
     return await prisma.branch.findUnique({
-      where: { id: parseInt(branchId) },
+      where: { id: parseInt(branchId, 10) },
       select: {
         id: true,
         name: true,
@@ -43,21 +43,7 @@ class BranchService {
         phone: true,
         email: true,
         isActive: true,
-        createdAt: true,
-        userBranches: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                email: true
-              }
-            }
-          }
-        },
-        _count: {
-          userBranches: true
-        }
+        createdAt: true
       }
     });
   }

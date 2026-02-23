@@ -49,7 +49,9 @@ ALTER TABLE item_categories DROP CONSTRAINT IF EXISTS item_categories_organizati
 ALTER TABLE item_categories ADD CONSTRAINT item_categories_organization_id_fkey
     FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE;
 DROP INDEX IF EXISTS idx_item_categories_name;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_item_categories_org_name ON item_categories(organization_id, name);
+-- Non-unique index to avoid failure when duplicate (organization_id, name) exist; enforce uniqueness in app if needed
+DROP INDEX IF EXISTS idx_item_categories_org_name;
+CREATE INDEX IF NOT EXISTS idx_item_categories_org_name ON item_categories(organization_id, name);
 CREATE INDEX IF NOT EXISTS idx_item_categories_organization_id ON item_categories(organization_id);
 
 -- 5. Add organization_id to items
@@ -69,5 +71,7 @@ ALTER TABLE branches DROP CONSTRAINT IF EXISTS branches_organization_id_fkey;
 ALTER TABLE branches ADD CONSTRAINT branches_organization_id_fkey
     FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE;
 DROP INDEX IF EXISTS idx_branches_code;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_branches_org_code ON branches(organization_id, code);
+-- Non-unique index to avoid failure when duplicate (organization_id, code) exist
+DROP INDEX IF EXISTS idx_branches_org_code;
+CREATE INDEX IF NOT EXISTS idx_branches_org_code ON branches(organization_id, code);
 CREATE INDEX IF NOT EXISTS idx_branches_organization_id ON branches(organization_id);

@@ -1,5 +1,6 @@
 import 'package:app/core/errors/failures.dart';
 import 'package:app/core/errors/result.dart';
+import 'package:app/features/auth/data/models/branch_model.dart';
 import 'package:app/features/auth/domain/entities/session.dart';
 import 'package:app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:app/features/auth/data/datasources/auth_local_datasource.dart';
@@ -20,9 +21,13 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Result<Session, Failure>> login(String email, String password) async {
     try {
       final response = await _remote.login(email, password);
+      final branches = response.accessibleBranches.map((b) => b.toEntity()).toList();
+      final selectedBranchId = _selectDefaultBranch(response.accessibleBranches);
       final session = Session(
         token: response.token,
         user: response.user.toEntity(),
+        accessibleBranches: branches,
+        selectedBranchId: selectedBranchId,
       );
       await _local.saveSession(session);
       return success(session);
@@ -45,6 +50,17 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Session?> getSession() async {
     return _local.getSession();
+  }
+
+  int? _selectDefaultBranch(List<BranchModel> branches) {
+    if (branches.isEmpty) return null;
+    for (final b in branches) {
+      if (b.isPrimary && b.canLogin) return b.id;
+    }
+    for (final b in branches) {
+      if (b.canLogin) return b.id;
+    }
+    return branches.first.id;
   }
 
   String _messageFromDioException(DioException e) {
