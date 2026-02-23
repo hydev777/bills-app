@@ -52,18 +52,6 @@ class _ProductsViewState extends State<ProductsView> {
     );
   }
 
-  Widget _buildListWithOverlay(List<ItemEntity> items) {
-    return Stack(
-      children: [
-        ProductListWidget(
-          items: items,
-          onProductTap: (item) => _openEditSheet(context, item),
-        ),
-        const Center(child: CircularProgressIndicator()),
-      ],
-    );
-  }
-
   void _openEditSheet(BuildContext context, ItemEntity item) {
     final state = context.read<ProductsBloc>().state;
     if (state is! ProductsLoadedState && state is! ProductsUpdateLoading) return;
@@ -118,11 +106,8 @@ class _ProductsViewState extends State<ProductsView> {
                     context.read<ProductsBloc>().add(const ProductsLoaded()),
               );
             }
-            if (state is ProductsCreateLoading) {
-              return _buildListWithOverlay(state.items);
-            }
-            if (state is ProductsUpdateLoading) {
-              return _buildListWithOverlay(state.items);
+            if (state is ProductsCreateLoading || state is ProductsUpdateLoading) {
+              return const Center(child: CircularProgressIndicator());
             }
             if (state is ProductsLoadedState) {
               return ProductListWidget(

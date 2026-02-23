@@ -118,8 +118,9 @@ class _ProductFormWidgetState extends State<ProductFormWidget> {
       );
     } else if (widget.onCreate != null) {
       widget.onCreate!(name: name, description: description, unitPrice: price, categoryId: categoryId, itbisRateId: itbisRateId);
+    } else {
+      widget.onCancel();
     }
-    widget.onCancel();
   }
 
   @override
@@ -129,7 +130,7 @@ class _ProductFormWidgetState extends State<ProductFormWidget> {
         left: 24,
         right: 24,
         top: 24,
-        bottom: MediaQuery.of(context).viewPadding.bottom + 24,
+        bottom: MediaQuery.viewPaddingOf(context).bottom + 24,
       ),
       child: Form(
         key: _formKey,
@@ -180,7 +181,7 @@ class _ProductFormWidgetState extends State<ProductFormWidget> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<ItemCategoryEntity?>(
-                initialValue: _selectedCategory,
+                value: _selectedCategory,
                 decoration: const InputDecoration(
                   labelText: 'Categoría (opcional)',
                   border: OutlineInputBorder(),
@@ -202,7 +203,7 @@ class _ProductFormWidgetState extends State<ProductFormWidget> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<ItbisRateEntity?>(
-                initialValue: _selectedItbis,
+                value: _selectedItbis,
                 decoration: const InputDecoration(
                   labelText: 'Tasa ITBIS',
                   border: OutlineInputBorder(),

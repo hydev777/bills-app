@@ -37,7 +37,32 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
     ProductsLoaded event,
     Emitter<ProductsState> emit,
   ) async {
-    emit(const ProductsLoading());
+    final current = state;
+    if (current is ProductsLoadedState) {
+      emit(ProductsCreateLoading(
+        items: current.items,
+        total: current.total,
+        categories: current.categories,
+        itbisRates: current.itbisRates,
+      ));
+    } else if (current is ProductsCreateLoading) {
+      emit(ProductsCreateLoading(
+        items: current.items,
+        total: current.total,
+        categories: current.categories,
+        itbisRates: current.itbisRates,
+      ));
+    } else if (current is ProductsUpdateLoading) {
+      emit(ProductsCreateLoading(
+        items: current.items,
+        total: current.total,
+        categories: current.categories,
+        itbisRates: current.itbisRates,
+      ));
+    } else {
+      emit(const ProductsLoading());
+    }
+
     final itemsResult = await _getItemsUseCase.call();
     final categoriesResult = await _getCategoriesUseCase.call();
     final itbisResult = await _getItbisRatesUseCase.call();
