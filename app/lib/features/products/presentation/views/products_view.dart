@@ -5,7 +5,7 @@ import 'package:app/features/products/presentation/bloc/products_bloc.dart';
 import 'package:app/features/products/presentation/bloc/products_event.dart';
 import 'package:app/features/products/presentation/bloc/products_state.dart';
 import 'package:app/features/products/domain/entities/item_entity.dart';
-import 'package:app/features/products/presentation/widgets/error_with_retry.dart';
+import 'package:app/core/widgets/error_with_retry.dart';
 import 'package:app/features/products/presentation/widgets/product_form_widget.dart';
 import 'package:app/features/products/presentation/widgets/product_list_widget.dart';
 import 'package:app/injection.dart';

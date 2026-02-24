@@ -3,6 +3,9 @@ const { prisma } = require('../config/prisma');
 const { BranchService, PrivilegeService } = require('../services');
 const { logger } = require('../utils/logger');
 
+// Helper to treat "administrador" role as superuser
+const isAdminUser = (req) => req.user && typeof req.user.role === 'string' && req.user.role.toLowerCase() === 'administrador';
+
 /**
  * JWT Authentication Middleware
  * Verifies JWT token and adds user info to request object
@@ -250,6 +253,9 @@ const validateUserAccess = (req, res, next) => {
 const requirePrivilege = (resource, action) => {
   return async (req, res, next) => {
     try {
+      if (isAdminUser(req)) {
+        return next();
+      }
       if (!req.userId) {
         return res.status(401).json({ 
           error: 'Unauthorized', 
@@ -286,6 +292,9 @@ const requirePrivilege = (resource, action) => {
 const requireAnyPrivilege = (privileges) => {
   return async (req, res, next) => {
     try {
+      if (isAdminUser(req)) {
+        return next();
+      }
       if (!req.userId) {
         return res.status(401).json({ 
           error: 'Unauthorized', 
@@ -323,6 +332,9 @@ const requireAnyPrivilege = (privileges) => {
 const requireAllPrivileges = (privileges) => {
   return async (req, res, next) => {
     try {
+      if (isAdminUser(req)) {
+        return next();
+      }
       if (!req.userId) {
         return res.status(401).json({ 
           error: 'Unauthorized', 
@@ -366,6 +378,9 @@ const requireAllPrivileges = (privileges) => {
  */
 const grantPrivilege = async (req, res, next) => {
   try {
+    if (isAdminUser(req)) {
+      return next();
+    }
     if (!req.userId) {
       return res.status(401).json({ 
         error: 'Unauthorized', 
@@ -399,6 +414,9 @@ const grantPrivilege = async (req, res, next) => {
  */
 const revokePrivilege = async (req, res, next) => {
   try {
+    if (isAdminUser(req)) {
+      return next();
+    }
     if (!req.userId) {
       return res.status(401).json({ 
         error: 'Unauthorized', 

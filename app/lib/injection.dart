@@ -19,6 +19,12 @@ import 'package:app/features/products/domain/usecases/get_itbis_rates_usecase.da
 import 'package:app/features/products/domain/usecases/get_items_usecase.dart';
 import 'package:app/features/products/domain/usecases/update_item_usecase.dart';
 import 'package:app/features/products/presentation/bloc/products_bloc.dart';
+import 'package:app/features/clients/data/datasources/clients_remote_datasource.dart';
+import 'package:app/features/clients/data/datasources/clients_remote_datasource_impl.dart';
+import 'package:app/features/clients/data/repositories/clients_repository_impl.dart';
+import 'package:app/features/clients/domain/repositories/clients_repository.dart';
+import 'package:app/features/clients/domain/usecases/get_clients_usecase.dart';
+import 'package:app/features/clients/presentation/bloc/clients_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
 
@@ -96,5 +102,23 @@ Future<void> initInjection() async {
       createItemUseCase: sl<CreateItemUseCase>(),
       updateItemUseCase: sl<UpdateItemUseCase>(),
     ),
+  );
+
+  // Clients - Data
+  sl.registerLazySingleton<ClientsRemoteDataSource>(
+    () => ClientsRemoteDataSourceImpl(sl<Dio>()),
+  );
+  sl.registerLazySingleton<ClientsRepository>(
+    () => ClientsRepositoryImpl(sl<ClientsRemoteDataSource>()),
+  );
+
+  // Clients - Domain (use cases)
+  sl.registerLazySingleton<GetClientsUseCase>(
+    () => GetClientsUseCase(sl<ClientsRepository>()),
+  );
+
+  // Clients - Presentation
+  sl.registerLazySingleton<ClientsBloc>(
+    () => ClientsBloc(getClientsUseCase: sl<GetClientsUseCase>()),
   );
 }

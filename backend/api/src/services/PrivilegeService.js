@@ -373,7 +373,7 @@ class PrivilegeService {
    * Privilege names per role (cajero: create/read bills + read items; administrador: all)
    */
   static ROLE_PRIVILEGE_NAMES = {
-    cajero: ['bill.create', 'bill.read', 'item.read', 'client.read', 'client.create'],
+    cajero: ['bill.create', 'bill.read', 'item.read'],
     administrador: null // null = grant all privileges from DB
   };
 

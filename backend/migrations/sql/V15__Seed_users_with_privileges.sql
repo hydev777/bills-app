@@ -40,16 +40,15 @@ CROSS JOIN privileges p
 WHERE u.username = 'admin'
   AND NOT EXISTS (SELECT 1 FROM user_privileges up WHERE up.user_id = u.id AND up.privilege_id = p.id);
 
--- Cajero: bill.*, item.read, item.create, branch.read, user.read
+-- Cajero: bill.create, bill.read, item.read
 INSERT INTO user_privileges (user_id, privilege_id, is_active, created_at, updated_at)
 SELECT u.id, p.id, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM users u
 CROSS JOIN privileges p
 WHERE u.username = 'cajero'
   AND p.name IN (
-    'bill.create', 'bill.read', 'bill.update', 'bill.delete',
-    'item.read', 'item.create', 'item.update',
-    'branch.read', 'user.read'
+    'bill.create', 'bill.read',
+    'item.read'
   )
   AND NOT EXISTS (SELECT 1 FROM user_privileges up WHERE up.user_id = u.id AND up.privilege_id = p.id);
 
