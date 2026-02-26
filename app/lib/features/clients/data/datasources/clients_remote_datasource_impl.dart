@@ -32,4 +32,69 @@ class ClientsRemoteDataSourceImpl implements ClientsRemoteDataSource {
     }
     return data;
   }
+
+  @override
+  Future<Map<String, dynamic>> createClient({
+    required String name,
+    String? identifier,
+    String? taxId,
+    String? email,
+    String? phone,
+    String? address,
+  }) async {
+    final body = <String, dynamic>{
+      'name': name,
+      if (identifier != null) 'identifier': identifier,
+      if (taxId != null) 'tax_id': taxId,
+      if (email != null) 'email': email,
+      if (phone != null) 'phone': phone,
+      if (address != null) 'address': address,
+    };
+
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/clients',
+      data: body,
+    );
+    final data = response.data;
+    if (data == null) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        message: 'Empty response',
+      );
+    }
+    return data;
+  }
+
+  @override
+  Future<Map<String, dynamic>> updateClient(
+    int id, {
+    String? name,
+    String? identifier,
+    String? taxId,
+    String? email,
+    String? phone,
+    String? address,
+  }) async {
+    final body = <String, dynamic>{
+      if (name != null) 'name': name,
+      if (identifier != null) 'identifier': identifier,
+      if (taxId != null) 'tax_id': taxId,
+      if (email != null) 'email': email,
+      if (phone != null) 'phone': phone,
+      if (address != null) 'address': address,
+    };
+
+    final response = await _dio.put<Map<String, dynamic>>(
+      '/api/clients/$id',
+      data: body,
+    );
+    final data = response.data;
+    if (data == null) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        message: 'Empty response',
+      );
+    }
+    return data;
+  }
 }

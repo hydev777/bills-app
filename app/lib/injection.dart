@@ -24,6 +24,8 @@ import 'package:app/features/clients/data/datasources/clients_remote_datasource_
 import 'package:app/features/clients/data/repositories/clients_repository_impl.dart';
 import 'package:app/features/clients/domain/repositories/clients_repository.dart';
 import 'package:app/features/clients/domain/usecases/get_clients_usecase.dart';
+import 'package:app/features/clients/domain/usecases/create_client_usecase.dart';
+import 'package:app/features/clients/domain/usecases/update_client_usecase.dart';
 import 'package:app/features/clients/presentation/bloc/clients_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
@@ -116,9 +118,19 @@ Future<void> initInjection() async {
   sl.registerLazySingleton<GetClientsUseCase>(
     () => GetClientsUseCase(sl<ClientsRepository>()),
   );
+  sl.registerLazySingleton<CreateClientUseCase>(
+    () => CreateClientUseCase(sl<ClientsRepository>()),
+  );
+  sl.registerLazySingleton<UpdateClientUseCase>(
+    () => UpdateClientUseCase(sl<ClientsRepository>()),
+  );
 
   // Clients - Presentation
-  sl.registerLazySingleton<ClientsBloc>(
-    () => ClientsBloc(getClientsUseCase: sl<GetClientsUseCase>()),
+  sl.registerFactory<ClientsBloc>(
+    () => ClientsBloc(
+      getClientsUseCase: sl<GetClientsUseCase>(),
+      createClientUseCase: sl<CreateClientUseCase>(),
+      updateClientUseCase: sl<UpdateClientUseCase>(),
+    ),
   );
 }

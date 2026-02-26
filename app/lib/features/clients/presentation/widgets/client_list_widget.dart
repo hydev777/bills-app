@@ -6,9 +6,11 @@ class ClientListWidget extends StatelessWidget {
   const ClientListWidget({
     super.key,
     required this.clients,
+    this.onClientTap,
   });
 
   final List<ClientEntity> clients;
+  final void Function(ClientEntity client)? onClientTap;
 
   @override
   Widget build(BuildContext context) {
@@ -49,10 +51,17 @@ class ClientListWidget extends StatelessWidget {
             delegate: SliverChildBuilderDelegate(
               (context, index) {
                 final client = clients[index];
+                final card = _ClientCard(client: client);
                 return Padding(
                   key: ValueKey(client.id),
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: _ClientCard(client: client),
+                  child: onClientTap != null
+                      ? InkWell(
+                          onTap: () => onClientTap!(client),
+                          borderRadius: BorderRadius.circular(16),
+                          child: card,
+                        )
+                      : card,
                 );
               },
               childCount: clients.length,

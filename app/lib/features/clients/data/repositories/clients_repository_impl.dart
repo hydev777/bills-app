@@ -44,6 +44,79 @@ class ClientsRepositoryImpl implements ClientsRepository {
     }
   }
 
+  @override
+  Future<Result<ClientEntity, Failure>> createClient({
+    required String name,
+    String? identifier,
+    String? taxId,
+    String? email,
+    String? phone,
+    String? address,
+  }) async {
+    try {
+      final data = await _remote.createClient(
+        name: name,
+        identifier: identifier,
+        taxId: taxId,
+        email: email,
+        phone: phone,
+        address: address,
+      );
+      final model = ClientModel.fromJson(data);
+      return success(model.toEntity());
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 403) {
+        return failure(
+          ServerFailure(message: 'No tienes permisos para crear clientes'),
+        );
+      }
+      return failure(ServerFailure(message: _messageFromDio(e)));
+    } catch (e) {
+      return failure(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<ClientEntity, Failure>> updateClient(
+    int id, {
+    required String name,
+    String? identifier,
+    String? taxId,
+    String? email,
+    String? phone,
+    String? address,
+  }) async {
+    try {
+      final data = await _remote.updateClient(
+        id,
+        name: name,
+        identifier: identifier,
+        taxId: taxId,
+        email: email,
+        phone: phone,
+        address: address,
+      );
+      final model = ClientModel.fromJson(data);
+      return success(model.toEntity());
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 403) {
+        return failure(
+          ServerFailure(message: 'No tienes permisos para editar clientes'),
+        );
+      }
+      if (status == 404) {
+        return failure(
+          ServerFailure(message: 'Cliente no encontrado'),
+        );
+      }
+      return failure(ServerFailure(message: _messageFromDio(e)));
+    } catch (e) {
+      return failure(ServerFailure(message: e.toString()));
+    }
+  }
+
   String _messageFromDio(DioException e) {
     final m = e.message;
     if (m != null && m.isNotEmpty) return m;

@@ -9,6 +9,27 @@ abstract class ClientsRepository {
     int limit = 50,
     int offset = 0,
   });
+
+  /// Create a new client. POST /api/clients.
+  Future<Result<ClientEntity, Failure>> createClient({
+    required String name,
+    String? identifier,
+    String? taxId,
+    String? email,
+    String? phone,
+    String? address,
+  });
+
+  /// Update a client. PUT /api/clients/:id.
+  Future<Result<ClientEntity, Failure>> updateClient(
+    int id, {
+    required String name,
+    String? identifier,
+    String? taxId,
+    String? email,
+    String? phone,
+    String? address,
+  });
 }
 
 class ClientsListResult {
