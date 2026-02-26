@@ -27,6 +27,14 @@ import 'package:app/features/clients/domain/usecases/get_clients_usecase.dart';
 import 'package:app/features/clients/domain/usecases/create_client_usecase.dart';
 import 'package:app/features/clients/domain/usecases/update_client_usecase.dart';
 import 'package:app/features/clients/presentation/bloc/clients_bloc.dart';
+import 'package:app/features/bills/data/datasources/bills_remote_datasource.dart';
+import 'package:app/features/bills/data/datasources/bills_remote_datasource_impl.dart';
+import 'package:app/features/bills/data/repositories/bills_repository_impl.dart';
+import 'package:app/features/bills/domain/repositories/bills_repository.dart';
+import 'package:app/features/bills/domain/usecases/get_bills_usecase.dart';
+import 'package:app/features/bills/domain/usecases/get_bill_by_id_usecase.dart';
+import 'package:app/features/bills/domain/usecases/get_bill_by_public_id_usecase.dart';
+import 'package:app/features/bills/presentation/bloc/bills_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
 
@@ -131,6 +139,34 @@ Future<void> initInjection() async {
       getClientsUseCase: sl<GetClientsUseCase>(),
       createClientUseCase: sl<CreateClientUseCase>(),
       updateClientUseCase: sl<UpdateClientUseCase>(),
+    ),
+  );
+
+  // Bills - Data
+  sl.registerLazySingleton<BillsRemoteDataSource>(
+    () => BillsRemoteDataSourceImpl(sl<Dio>()),
+  );
+  sl.registerLazySingleton<BillsRepository>(
+    () => BillsRepositoryImpl(sl<BillsRemoteDataSource>()),
+  );
+
+  // Bills - Domain (use cases)
+  sl.registerLazySingleton<GetBillsUseCase>(
+    () => GetBillsUseCase(sl<BillsRepository>()),
+  );
+  sl.registerLazySingleton<GetBillByIdUseCase>(
+    () => GetBillByIdUseCase(sl<BillsRepository>()),
+  );
+  sl.registerLazySingleton<GetBillByPublicIdUseCase>(
+    () => GetBillByPublicIdUseCase(sl<BillsRepository>()),
+  );
+
+  // Bills - Presentation
+  sl.registerFactory<BillsBloc>(
+    () => BillsBloc(
+      getBillsUseCase: sl<GetBillsUseCase>(),
+      getBillByIdUseCase: sl<GetBillByIdUseCase>(),
+      getBillByPublicIdUseCase: sl<GetBillByPublicIdUseCase>(),
     ),
   );
 }

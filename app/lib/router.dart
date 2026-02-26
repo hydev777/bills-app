@@ -1,5 +1,7 @@
 import 'package:app/features/clients/presentation/bloc/clients_bloc.dart';
 import 'package:app/features/clients/presentation/bloc/clients_event.dart';
+import 'package:app/features/bills/presentation/bloc/bills_bloc.dart';
+import 'package:app/features/bills/presentation/bloc/bills_event.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,6 +12,7 @@ import 'package:app/features/home/presentation/views/home_shell_view.dart';
 import 'package:app/features/home/presentation/views/placeholder_view.dart';
 import 'package:app/features/products/presentation/views/products_view.dart';
 import 'package:app/features/clients/presentation/views/clients_view.dart';
+import 'package:app/features/bills/presentation/views/bills_view.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:app/injection.dart';
 
@@ -64,8 +67,10 @@ void initRouter() {
             routes: [
               GoRoute(
                 path: 'facturas',
-                builder: (context, state) =>
-                    const PlaceholderView(title: 'Facturas'),
+                    builder: (context, state) => BlocProvider<BillsBloc>(
+                      create: (_) => sl<BillsBloc>()..add(const BillsLoaded()),
+                      child: const BillsView(),
+                    ),
               ),
               GoRoute(
                 path: 'clientes',
