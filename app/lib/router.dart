@@ -13,6 +13,8 @@ import 'package:app/features/home/presentation/views/placeholder_view.dart';
 import 'package:app/features/products/presentation/views/products_view.dart';
 import 'package:app/features/clients/presentation/views/clients_view.dart';
 import 'package:app/features/bills/presentation/views/bills_view.dart';
+import 'package:app/features/sales/presentation/bloc/sale_bloc.dart';
+import 'package:app/features/sales/presentation/views/sale_view.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:app/injection.dart';
 
@@ -67,10 +69,10 @@ void initRouter() {
             routes: [
               GoRoute(
                 path: 'facturas',
-                    builder: (context, state) => BlocProvider<BillsBloc>(
-                      create: (_) => sl<BillsBloc>()..add(const BillsLoaded()),
-                      child: const BillsView(),
-                    ),
+                builder: (context, state) => BlocProvider<BillsBloc>(
+                  create: (_) => sl<BillsBloc>()..add(const BillsLoaded()),
+                  child: const BillsView(),
+                ),
               ),
               GoRoute(
                 path: 'clientes',
@@ -83,6 +85,13 @@ void initRouter() {
               GoRoute(
                 path: 'productos',
                 builder: (context, state) => const ProductsView(),
+              ),
+              GoRoute(
+                path: 'venta',
+                builder: (context, state) => BlocProvider<SaleBloc>(
+                  create: (_) => sl<SaleBloc>(),
+                  child: const SaleView(),
+                ),
               ),
               GoRoute(
                 path: 'categorias',

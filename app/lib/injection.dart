@@ -34,7 +34,9 @@ import 'package:app/features/bills/domain/repositories/bills_repository.dart';
 import 'package:app/features/bills/domain/usecases/get_bills_usecase.dart';
 import 'package:app/features/bills/domain/usecases/get_bill_by_id_usecase.dart';
 import 'package:app/features/bills/domain/usecases/get_bill_by_public_id_usecase.dart';
+import 'package:app/features/bills/domain/usecases/create_sale_bill_usecase.dart';
 import 'package:app/features/bills/presentation/bloc/bills_bloc.dart';
+import 'package:app/features/sales/presentation/bloc/sale_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
 
@@ -160,6 +162,9 @@ Future<void> initInjection() async {
   sl.registerLazySingleton<GetBillByPublicIdUseCase>(
     () => GetBillByPublicIdUseCase(sl<BillsRepository>()),
   );
+  sl.registerLazySingleton<CreateSaleBillUseCase>(
+    () => CreateSaleBillUseCase(sl<BillsRepository>()),
+  );
 
   // Bills - Presentation
   sl.registerFactory<BillsBloc>(
@@ -167,6 +172,14 @@ Future<void> initInjection() async {
       getBillsUseCase: sl<GetBillsUseCase>(),
       getBillByIdUseCase: sl<GetBillByIdUseCase>(),
       getBillByPublicIdUseCase: sl<GetBillByPublicIdUseCase>(),
+    ),
+  );
+
+  // Sales - Presentation
+  sl.registerFactory<SaleBloc>(
+    () => SaleBloc(
+      getItemsUseCase: sl<GetItemsUseCase>(),
+      createSaleBillUseCase: sl<CreateSaleBillUseCase>(),
     ),
   );
 }

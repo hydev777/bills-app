@@ -16,6 +16,13 @@ class BillsView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Facturas'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.point_of_sale_rounded),
+            tooltip: 'Nueva venta',
+            onPressed: () => Navigator.of(context).pushNamed('/home/venta'),
+          ),
+        ],
       ),
       body: BlocBuilder<BillsBloc, BillsState>(
         buildWhen: (previous, current) => previous != current,

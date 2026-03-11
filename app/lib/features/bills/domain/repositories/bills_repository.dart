@@ -1,6 +1,7 @@
 import 'package:app/core/errors/failures.dart';
 import 'package:app/core/errors/result.dart';
 import 'package:app/features/bills/domain/entities/bill_entity.dart';
+import 'package:app/features/sales/domain/entities/sale_line_entity.dart';
 
 abstract class BillsRepository {
   /// Returns bills list with pagination. GET /api/bills.
@@ -17,6 +18,14 @@ abstract class BillsRepository {
 
   /// Get a bill by public id. GET /api/bills/public/:publicId.
   Future<Result<BillEntity, Failure>> getBillByPublicId(String publicId);
+
+  /// Create a sale bill and its lines using POST /api/bills and /api/bill-items.
+  Future<Result<BillEntity, Failure>> createSaleBill({
+    required List<SaleLineEntity> lines,
+    required double subtotal,
+    required double cashGiven,
+    int? clientId,
+  });
 }
 
 class BillsListResult {

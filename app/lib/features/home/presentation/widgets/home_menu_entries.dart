@@ -4,6 +4,7 @@ import 'drawer_item_tile.dart';
 
 /// Menu entries for home navigation (sidebar and drawer).
 const List<({IconData icon, String label, String path})> homeMenuEntries = [
+  (icon: Icons.point_of_sale, label: 'Venta', path: '/home/venta'),
   (icon: Icons.receipt_long, label: 'Facturas', path: '/home/facturas'),
   (icon: Icons.people, label: 'Clientes', path: '/home/clientes'),
   (icon: Icons.inventory_2, label: 'Productos', path: '/home/productos'),

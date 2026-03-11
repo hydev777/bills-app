@@ -8,6 +8,7 @@ import 'package:app/injection.dart';
 const _branchScopedPaths = [
   '/api/items',
   '/api/bills',
+  '/api/bill-items',
   '/api/clients',
   '/api/branches',
 ];

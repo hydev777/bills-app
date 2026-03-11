@@ -70,5 +70,57 @@ class BillsRemoteDataSourceImpl implements BillsRemoteDataSource {
     }
     return BillModel.fromJson(data);
   }
+
+  @override
+  Future<BillModel> createBill({
+    required String title,
+    String? description,
+    double? amount,
+    String status = 'paid',
+    int? clientId,
+  }) async {
+    final body = <String, dynamic>{
+      'title': title,
+      'status': status,
+    };
+    if (description != null) {
+      body['description'] = description;
+    }
+    if (amount != null) {
+      body['amount'] = amount;
+    }
+    if (clientId != null) {
+      body['client_id'] = clientId;
+    }
+
+    final response =
+        await _dio.post<Map<String, dynamic>>('/api/bills', data: body);
+    final data = response.data;
+    if (data == null) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        message: 'Empty response',
+      );
+    }
+    return BillModel.fromJson(data);
+  }
+
+  @override
+  Future<void> createBillItems({
+    required int billId,
+    required List<({int itemId, int quantity, double unitPrice})> lines,
+  }) async {
+    for (final line in lines) {
+      await _dio.post<Map<String, dynamic>>(
+        '/api/bill-items',
+        data: <String, dynamic>{
+          'bill_id': billId,
+          'item_id': line.itemId,
+          'quantity': line.quantity,
+          'unit_price': line.unitPrice,
+        },
+      );
+    }
+  }
 }
 

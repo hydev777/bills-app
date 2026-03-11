@@ -16,5 +16,20 @@ abstract class BillsRemoteDataSource {
 
   /// GET /api/bills/public/:publicId - Get bill by public UUID.
   Future<BillModel> getBillByPublicId(String publicId);
+
+  /// POST /api/bills - Create a new bill (used for sales).
+  Future<BillModel> createBill({
+    required String title,
+    String? description,
+    double? amount,
+    String status,
+    int? clientId,
+  });
+
+  /// POST /api/bill-items - Add items to a bill.
+  Future<void> createBillItems({
+    required int billId,
+    required List<({int itemId, int quantity, double unitPrice})> lines,
+  });
 }
 
