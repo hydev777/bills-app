@@ -66,3 +66,7 @@ final class SaleSubmitted extends SaleEvent {
   const SaleSubmitted();
 }
 
+final class SaleSuccessDialogDismissed extends SaleEvent {
+  const SaleSuccessDialogDismissed();
+}
+

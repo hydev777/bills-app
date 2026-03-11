@@ -18,6 +18,26 @@ final class SaleLoading extends SaleState {
   const SaleLoading();
 }
 
+/// Summary shown in the success dialog after a sale is completed.
+class SaleSuccessSummary extends Equatable {
+  const SaleSuccessSummary({
+    required this.subtotal,
+    required this.taxAmount,
+    required this.totalAmount,
+    required this.cashGiven,
+    required this.change,
+  });
+
+  final double subtotal;
+  final double taxAmount;
+  final double totalAmount;
+  final double cashGiven;
+  final double change;
+
+  @override
+  List<Object?> get props => [subtotal, taxAmount, totalAmount, cashGiven, change];
+}
+
 final class SaleLoaded extends SaleState {
   const SaleLoaded({
     required this.searchQuery,
@@ -31,6 +51,7 @@ final class SaleLoaded extends SaleState {
     this.isSearching = false,
     this.isSubmitting = false,
     this.errorMessage,
+    this.successSummaryToShow,
   });
 
   final String searchQuery;
@@ -44,6 +65,7 @@ final class SaleLoaded extends SaleState {
   final bool isSearching;
   final bool isSubmitting;
   final String? errorMessage;
+  final SaleSuccessSummary? successSummaryToShow;
 
   SaleLoaded copyWith({
     String? searchQuery,
@@ -57,6 +79,8 @@ final class SaleLoaded extends SaleState {
     bool? isSearching,
     bool? isSubmitting,
     String? errorMessage,
+    SaleSuccessSummary? successSummaryToShow,
+    bool clearSuccessSummary = false,
   }) {
     return SaleLoaded(
       searchQuery: searchQuery ?? this.searchQuery,
@@ -70,6 +94,9 @@ final class SaleLoaded extends SaleState {
       isSearching: isSearching ?? this.isSearching,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       errorMessage: errorMessage,
+      successSummaryToShow: clearSuccessSummary
+          ? null
+          : (successSummaryToShow ?? this.successSummaryToShow),
     );
   }
 
@@ -86,6 +113,7 @@ final class SaleLoaded extends SaleState {
         isSearching,
         isSubmitting,
         errorMessage,
+        successSummaryToShow,
       ];
 }
 

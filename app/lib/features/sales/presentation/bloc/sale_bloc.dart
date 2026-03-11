@@ -26,6 +26,7 @@ class SaleBloc extends Bloc<SaleEvent, SaleState> {
     on<SaleProductRemoved>(_onProductRemoved);
     on<SaleCashGivenChanged>(_onCashGivenChanged);
     on<SaleSubmitted>(_onSubmitted);
+    on<SaleSuccessDialogDismissed>(_onSuccessDialogDismissed);
   }
 
   final GetItemsUseCase _getItemsUseCase;
@@ -259,16 +260,24 @@ class SaleBloc extends Bloc<SaleEvent, SaleState> {
 
     await result.when<Future<void>>(
       success: (BillEntity _) async {
+        final summary = SaleSuccessSummary(
+          subtotal: current.subtotal,
+          taxAmount: current.taxAmount,
+          totalAmount: current.totalAmount,
+          cashGiven: current.cashGiven,
+          change: current.change,
+        );
         emit(
-          const SaleLoaded(
+          SaleLoaded(
             searchQuery: '',
             searchResults: <ItemEntity>[],
-            cart: <SaleLineEntity>[],
+            cart: const <SaleLineEntity>[],
             subtotal: 0,
             taxAmount: 0,
             totalAmount: 0,
             cashGiven: 0,
             change: 0,
+            successSummaryToShow: summary,
           ),
         );
       },
@@ -304,6 +313,16 @@ class SaleBloc extends Bloc<SaleEvent, SaleState> {
   double _calculateChange(double totalAmount, double cashGiven) {
     final change = cashGiven - totalAmount;
     return change > 0 ? change : 0;
+  }
+
+  void _onSuccessDialogDismissed(
+    SaleSuccessDialogDismissed event,
+    Emitter<SaleState> emit,
+  ) {
+    final current = state;
+    if (current is SaleLoaded) {
+      emit(current.copyWith(clearSuccessSummary: true));
+    }
   }
 }
 
