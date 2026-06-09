@@ -1,4 +1,5 @@
 import 'package:app/core/network/api_client.dart';
+import 'package:app/core/local_api/local_api_server.dart';
 import 'package:app/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:app/features/auth/data/datasources/auth_local_datasource_impl.dart';
 import 'package:app/features/auth/data/datasources/auth_remote_datasource.dart';
@@ -42,9 +43,17 @@ import 'package:dio/dio.dart';
 
 final GetIt sl = GetIt.instance;
 
-Future<void> initInjection() async {
+Future<void> initInjection({
+  String? apiBaseUrl,
+  LocalApiServer? localApiServer,
+}) async {
   // Core
-  sl.registerLazySingleton<Dio>(() => createApiClient());
+  if (localApiServer != null) {
+    sl.registerLazySingleton<LocalApiServer>(() => localApiServer);
+  }
+  sl.registerLazySingleton<Dio>(
+    () => createApiClient(baseUrl: apiBaseUrl, localApiServer: localApiServer),
+  );
 
   // Auth - Data
   sl.registerLazySingleton<AuthRemoteDataSource>(

@@ -1,56 +1,74 @@
-# Bills — Facturación
+# Bills - Facturacion
 
-Sistema de facturación multi-sucursal: aplicación Flutter (cliente) y API Node.js con PostgreSQL.
+Sistema de facturacion multi-sucursal: aplicacion Flutter (cliente) y API Node.js con PostgreSQL.
 
 ## Estructura del proyecto
 
-```
+```text
 bills/
-├── app/          # Cliente Flutter (Facturación)
-├── backend/      # API Node.js + Express, PostgreSQL, migraciones Flyway
-└── README.md     # Este archivo
+|-- app/          # Cliente Flutter (Facturacion)
+|-- backend/      # API Node.js + Express, PostgreSQL, migraciones Flyway
+`-- README.md     # Este archivo
 ```
 
-| Parte      | Descripción |
-|-----------|-------------|
-| **app**   | App Flutter: login con selección de sucursal, menú (Facturas, Clientes, Productos, Categorías, Sucursales), integración con la API. Ver [app/README.md](app/README.md). |
-| **backend** | API REST para facturas, ítems, clientes, sucursales, usuarios y privilegios. Ver [backend/README.md](backend/README.md). |
+| Parte | Descripcion |
+|------|-------------|
+| **app** | App Flutter: login con seleccion de sucursal, menu (Facturas, Clientes, Productos, Categorias, Sucursales), integracion con la API. Ver [app/README.md](app/README.md). |
+| **backend** | API REST para facturas, items, clientes, sucursales, usuarios y privilegios. Ver [backend/README.md](backend/README.md). |
 
 ## Requisitos
 
 - **Cliente**: [Flutter](https://flutter.dev) (SDK ^3.10.0)
 - **Backend**: [Docker](https://www.docker.com/) y Docker Compose (recomendado), o Node.js 18+ y PostgreSQL 15
 
-## Inicio rápido
+## Inicio rapido
 
 ### 1. Backend (API + base de datos)
 
 ```bash
 cd backend
 cp api/.env.example api/.env
-# Ajustar .env si es necesario (JWT_SECRET, contraseña DB, etc.)
+# Ajustar .env si es necesario (JWT_SECRET, contrasena DB, etc.)
 docker-compose up -d
 ```
 
-- API: http://localhost:3000  
-- Health: http://localhost:3000/health  
+- API: http://localhost:3000
+- Health: http://localhost:3000/health
 
-### 2. App Flutter
+### 2. App Flutter con backend externo
 
 ```bash
 cd app
 cp .env.example .env
-# En .env: ENV=dev, BASE_URL_DEV=http://localhost:3000 (o la URL de tu API)
+# En .env: ENV=dev, BASE_URL_DEV=http://localhost:3000
 flutter pub get
 flutter run
 ```
 
 Por defecto la app usa `http://localhost:3000` en desarrollo. Para Android emulator usa `BASE_URL_DEV=http://10.0.2.2:3000`.
 
-## Documentación
+### 3. App Flutter en modo local
 
-- [App Flutter](app/README.md) — configuración, estructura y ejecución del cliente.
-- [Backend](backend/README.md) — API, modelos, migraciones, Docker y comandos de desarrollo.
+La app tambien puede ejecutarse sin backend externo usando una API local embebida con SQLite:
+
+```bash
+cd app
+cp .env.example .env
+# En .env: ENV=local
+flutter pub get
+flutter run
+```
+
+Credenciales sembradas para el modo local:
+
+- `admin@bills.local` / `Password123`
+- `cajero@bills.local` / `Password123`
+- `vendedor@bills.local` / `Password123`
+
+## Documentacion
+
+- [App Flutter](app/README.md) - configuracion, estructura y ejecucion del cliente.
+- [Backend](backend/README.md) - API, modelos, migraciones, Docker y comandos de desarrollo.
 
 ## Licencia
 

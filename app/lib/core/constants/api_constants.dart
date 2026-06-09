@@ -8,10 +8,21 @@ class ApiConstants {
   ApiConstants._();
 
   /// ENV from .env file, or 'prod' when --dart-define=ENV_PROD=true
-  static const bool _isProdDefine = bool.fromEnvironment('ENV_PROD', defaultValue: false);
-  static String get env => _isProdDefine ? 'prod' : (dotenv.env['ENV'] ?? 'dev');
+  static const bool _isProdDefine = bool.fromEnvironment(
+    'ENV_PROD',
+    defaultValue: false,
+  );
+  static String get env =>
+      _isProdDefine ? 'prod' : (dotenv.env['ENV'] ?? 'dev');
+  static bool get isLocal => env == 'local';
 
   static String get baseUrl {
+    if (isLocal) {
+      return String.fromEnvironment(
+        'BASE_URL',
+        defaultValue: 'http://127.0.0.1:0',
+      );
+    }
     final isProd = env == 'prod';
     final fromEnv = isProd
         ? dotenv.env['BASE_URL_PROD']

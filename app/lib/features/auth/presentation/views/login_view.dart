@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:app/core/constants/api_constants.dart';
 import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:app/features/auth/presentation/bloc/auth_event.dart';
 import 'package:app/features/auth/presentation/bloc/auth_state.dart';
@@ -54,7 +55,7 @@ class _LoginLoading extends StatelessWidget {
         children: [
           CircularProgressIndicator(),
           SizedBox(height: 16),
-          Text('Iniciando sesión...'),
+          Text('Iniciando sesion...'),
         ],
       ),
     );
@@ -74,19 +75,23 @@ class _LoginContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Facturación',
+          'Facturacion',
           style: theme.textTheme.headlineMedium,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
         Text(
-          'Inicie sesión para continuar',
+          'Inicie sesion para continuar',
           style: theme.textTheme.bodyLarge?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 32),
+        if (ApiConstants.isLocal) ...[
+          const _LocalModeCredentials(),
+          const SizedBox(height: 24),
+        ],
         const LoginForm(),
         if (state is AuthError) ...[
           const SizedBox(height: 16),
@@ -97,6 +102,96 @@ class _LoginContent extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _LocalModeCredentials extends StatelessWidget {
+  const _LocalModeCredentials();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Modo local',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: 8),
+            Text('Credenciales de prueba'),
+            SizedBox(height: 12),
+            _CredentialRow(
+              label: 'Admin',
+              email: 'admin@bills.local',
+              password: 'Password123',
+            ),
+            SizedBox(height: 8),
+            _CredentialRow(
+              label: 'Cajero',
+              email: 'cajero@bills.local',
+              password: 'Password123',
+            ),
+            SizedBox(height: 8),
+            _CredentialRow(
+              label: 'Vendedor',
+              email: 'vendedor@bills.local',
+              password: 'Password123',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CredentialRow extends StatelessWidget {
+  const _CredentialRow({
+    required this.label,
+    required this.email,
+    required this.password,
+  });
+
+  final String label;
+  final String email;
+  final String password;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DefaultTextStyle(
+      style: theme.textTheme.bodyMedium ?? const TextStyle(),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 76,
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(email),
+                Text(password),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
