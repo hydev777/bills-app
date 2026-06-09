@@ -3,7 +3,7 @@ import 'package:app/features/products/data/models/item_model.dart';
 import 'package:app/features/products/data/models/itbis_rate_model.dart';
 
 abstract class ProductsRemoteDataSource {
-  /// GET /api/items. Branch from X-Branch-Id header.
+  /// GET /api/items. In remote mode, branch comes from X-Branch-Id header.
   Future<Map<String, dynamic>> getItems({
     String? category,
     String? search,

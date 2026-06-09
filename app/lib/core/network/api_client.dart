@@ -6,7 +6,7 @@ import 'branch_interceptor.dart';
 import 'http_logger_interceptor.dart';
 
 /// Creates a configured Dio instance for the API.
-/// Adds [BranchInterceptor] for X-Branch-Id and [HttpLoggerInterceptor] in debug.
+/// Adds the branch interceptor only for remote branch-scoped requests.
 Dio createApiClient({String? baseUrl, LocalApiServer? localApiServer}) {
   final dio = Dio(
     BaseOptions(
@@ -22,7 +22,9 @@ Dio createApiClient({String? baseUrl, LocalApiServer? localApiServer}) {
   if (localApiServer != null) {
     dio.interceptors.add(_LocalApiHealthInterceptor(localApiServer));
   }
-  dio.interceptors.add(BranchInterceptor());
+  if (!ApiConstants.isLocal) {
+    dio.interceptors.add(BranchInterceptor());
+  }
   dio.interceptors.add(HttpLoggerInterceptor());
   return dio;
 }

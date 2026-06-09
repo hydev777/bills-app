@@ -13,7 +13,6 @@ class LocalSeed {
   Future<void> ensureSeeded() async {
     await _database.transaction((db) {
       _seedPrivileges(db);
-      _seedBranches(db);
       _seedUsers(db);
       _seedItbisRates(db);
       _seedClients(db);
@@ -24,10 +23,6 @@ class LocalSeed {
 
   void _seedPrivileges(Database db) {
     final privileges = [
-      ('branch.create', 'Create branches', 'branch', 'create'),
-      ('branch.read', 'View branches', 'branch', 'read'),
-      ('branch.update', 'Update branches', 'branch', 'update'),
-      ('branch.delete', 'Delete branches', 'branch', 'delete'),
       ('user.create', 'Create users', 'user', 'create'),
       ('user.read', 'View users', 'user', 'read'),
       ('user.update', 'Update users', 'user', 'update'),
@@ -47,7 +42,6 @@ class LocalSeed {
       ('privilege.grant', 'Grant privileges', 'privilege', 'grant'),
       ('privilege.revoke', 'Revoke privileges', 'privilege', 'revoke'),
       ('privilege.read', 'View privileges', 'privilege', 'read'),
-      ('all', 'Access any branch', 'all', 'all'),
     ];
     for (final p in privileges) {
       db.execute(
@@ -58,13 +52,6 @@ VALUES (?, ?, ?, ?)
         [p.$1, p.$2, p.$3, p.$4],
       );
     }
-  }
-
-  void _seedBranches(Database db) {
-    db.execute('''
-INSERT OR IGNORE INTO branches (name, code, tax_id, address, phone, email, is_active)
-VALUES ('Sucursal Principal', 'MAIN', NULL, NULL, NULL, NULL, 1)
-''');
   }
 
   void _seedUsers(Database db) {
@@ -88,21 +75,6 @@ VALUES (?, ?, ?, ?)
       }
     }
 
-    final branchId = _intValue(
-      db
-          .select("SELECT id FROM branches WHERE code = 'MAIN' LIMIT 1")
-          .first['id'],
-    );
-    for (final row in db.select('SELECT id, username FROM users')) {
-      db.execute(
-        '''
-INSERT OR IGNORE INTO user_branches (user_id, branch_id, is_primary, can_login)
-VALUES (?, ?, 1, 1)
-''',
-        [row['id'], branchId],
-      );
-    }
-
     final allPrivileges = db.select('SELECT id FROM privileges');
     final adminId = _userId(db, 'admin');
     for (final p in allPrivileges) {
@@ -117,11 +89,7 @@ VALUES (?, ?, 1, 1)
       'item.read',
       'client.read',
     ]);
-    _grantByName(db, _userId(db, 'vendedor'), [
-      'bill.read',
-      'item.read',
-      'branch.read',
-    ]);
+    _grantByName(db, _userId(db, 'vendedor'), ['bill.read', 'item.read']);
   }
 
   void _seedItbisRates(Database db) {
@@ -177,7 +145,6 @@ VALUES (?, ?, ?, ?, ?, ?)
   }
 
   void _seedCategoriesAndItems(Database db) {
-    final branchId = _branchId(db);
     final categories = [
       ('Bebidas', 'Bebidas y refrescos'),
       ('Comestibles', 'Alimentos y snacks'),
@@ -186,10 +153,10 @@ VALUES (?, ?, ?, ?, ?, ?)
     for (final c in categories) {
       db.execute(
         '''
-INSERT OR IGNORE INTO item_categories (branch_id, name, description)
-VALUES (?, ?, ?)
+INSERT OR IGNORE INTO item_categories (name, description)
+VALUES (?, ?)
 ''',
-        [branchId, c.$1, c.$2],
+        [c.$1, c.$2],
       );
     }
 
@@ -210,51 +177,41 @@ VALUES (?, ?, ?)
     ];
     for (final item in items) {
       final exists = db.select(
-        'SELECT id FROM items WHERE branch_id = ? AND lower(name) = lower(?)',
-        [branchId, item.$1],
+        'SELECT id FROM items WHERE lower(name) = lower(?)',
+        [item.$1],
       );
       if (exists.isNotEmpty) continue;
       db.execute(
         '''
-INSERT INTO items (branch_id, name, description, unit_price, category_id, itbis_rate_id)
-VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO items (name, description, unit_price, category_id, itbis_rate_id)
+VALUES (?, ?, ?, ?, ?)
 ''',
-        [
-          branchId,
-          item.$1,
-          item.$2,
-          item.$3,
-          _categoryId(db, branchId, item.$4),
-          item.$5,
-        ],
+        [item.$1, item.$2, item.$3, _categoryId(db, item.$4), item.$5],
       );
     }
   }
 
   void _seedBills(Database db) {
     if (db.select('SELECT id FROM bills LIMIT 1').isNotEmpty) return;
-    final branchId = _branchId(db);
     final userId = _userId(db, 'admin');
     final clientRows = db.select(
       "SELECT id FROM clients WHERE identifier = 'RNC-131-12345678' LIMIT 1",
     );
     final billId = _insertBill(
       db,
-      branchId: branchId,
       userId: userId,
       clientId: clientRows.isEmpty ? null : _intValue(clientRows.first['id']),
       title: 'Factura venta Empresa ABC',
       description: 'Pedido de oficina',
       status: 'draft',
     );
-    _insertBillItem(db, billId, _itemId(db, branchId, 'Refresco 2L'), 2);
-    _insertBillItem(db, billId, _itemId(db, branchId, 'Cafe Americano'), 1);
+    _insertBillItem(db, billId, _itemId(db, 'Refresco 2L'), 2);
+    _insertBillItem(db, billId, _itemId(db, 'Cafe Americano'), 1);
     _recalculateBill(db, billId);
   }
 
   int _insertBill(
     Database db, {
-    required int branchId,
     required int userId,
     required int? clientId,
     required String title,
@@ -264,10 +221,10 @@ VALUES (?, ?, ?, ?, ?, ?)
     final publicId = _uuid();
     db.execute(
       '''
-INSERT INTO bills (public_id, branch_id, user_id, client_id, title, description, subtotal, tax_amount, amount, status)
-VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?)
+INSERT INTO bills (public_id, user_id, client_id, title, description, subtotal, tax_amount, amount, status)
+VALUES (?, ?, ?, ?, ?, 0, 0, 0, ?)
 ''',
-      [publicId, branchId, userId, clientId, title, description, status],
+      [publicId, userId, clientId, title, description, status],
     );
     return db.lastInsertRowId;
   }
@@ -329,15 +286,10 @@ int _userId(Database db, String username) => _intValue(
   db.select('SELECT id FROM users WHERE username = ?', [username]).first['id'],
 );
 
-int _branchId(Database db) => _intValue(
-  db.select("SELECT id FROM branches WHERE code = 'MAIN' LIMIT 1").first['id'],
-);
-
-int _categoryId(Database db, int branchId, String name) => _intValue(
-  db.select(
-    'SELECT id FROM item_categories WHERE branch_id = ? AND name = ? LIMIT 1',
-    [branchId, name],
-  ).first['id'],
+int _categoryId(Database db, String name) => _intValue(
+  db.select('SELECT id FROM item_categories WHERE name = ? LIMIT 1', [
+    name,
+  ]).first['id'],
 );
 
 int _rateId(Database db, double percentage) => _intValue(
@@ -346,11 +298,8 @@ int _rateId(Database db, double percentage) => _intValue(
   ]).first['id'],
 );
 
-int _itemId(Database db, int branchId, String name) => _intValue(
-  db.select('SELECT id FROM items WHERE branch_id = ? AND name = ? LIMIT 1', [
-    branchId,
-    name,
-  ]).first['id'],
+int _itemId(Database db, String name) => _intValue(
+  db.select('SELECT id FROM items WHERE name = ? LIMIT 1', [name]).first['id'],
 );
 
 int _intValue(Object? value) =>

@@ -4,7 +4,7 @@ import 'package:app/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:app/features/auth/domain/entities/session.dart';
 import 'package:app/injection.dart';
 
-/// Path prefixes that require X-Branch-Id header (branch-scoped API).
+/// Path prefixes that require X-Branch-Id header in remote mode.
 const _branchScopedPaths = [
   '/api/items',
   '/api/bills',
@@ -13,7 +13,7 @@ const _branchScopedPaths = [
   '/api/branches',
 ];
 
-/// Adds Authorization (Bearer) and X-Branch-Id for branch-scoped paths.
+/// Adds Authorization (Bearer) and X-Branch-Id for remote branch-scoped paths.
 /// Uses [QueuedInterceptor] so async session/branch logic runs before the request is sent.
 class BranchInterceptor extends QueuedInterceptor {
   @override
@@ -32,12 +32,12 @@ class BranchInterceptor extends QueuedInterceptor {
       final session = await sl<AuthLocalDataSource>().getSession();
       if (session != null) {
         options.headers['Authorization'] = 'Bearer ${session.token}';
-        final needsBranch =
-            _branchScopedPaths.any((p) => options.path.startsWith(p));
+        final needsBranch = _branchScopedPaths.any(
+          (p) => options.path.startsWith(p),
+        );
         if (needsBranch) {
           int? branchId = session.selectedBranchId;
-          if (branchId == null &&
-              session.accessibleBranches.isNotEmpty) {
+          if (branchId == null && session.accessibleBranches.isNotEmpty) {
             branchId = session.accessibleBranches.first.id;
             final updatedSession = Session(
               token: session.token,

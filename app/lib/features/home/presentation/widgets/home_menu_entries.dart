@@ -1,23 +1,33 @@
+import 'package:app/core/constants/api_constants.dart';
 import 'package:flutter/material.dart';
 
 import 'drawer_item_tile.dart';
 
 /// Menu entries for home navigation (sidebar and drawer).
-const List<({IconData icon, String label, String path})> homeMenuEntries = [
-  (icon: Icons.point_of_sale, label: 'Venta', path: '/home/venta'),
-  (icon: Icons.receipt_long, label: 'Facturas', path: '/home/facturas'),
-  (icon: Icons.people, label: 'Clientes', path: '/home/clientes'),
-  (icon: Icons.inventory_2, label: 'Productos', path: '/home/productos'),
-  (icon: Icons.category, label: 'Categorías', path: '/home/categorias'),
-  (icon: Icons.store, label: 'Sucursales', path: '/home/sucursales'),
-];
+List<({IconData icon, String label, String path})> get homeMenuEntries {
+  final entries = <({IconData icon, String label, String path})>[
+    (icon: Icons.point_of_sale, label: 'Venta', path: '/home/venta'),
+    (icon: Icons.receipt_long, label: 'Facturas', path: '/home/facturas'),
+    (icon: Icons.people, label: 'Clientes', path: '/home/clientes'),
+    (icon: Icons.inventory_2, label: 'Productos', path: '/home/productos'),
+    (icon: Icons.category, label: 'Categorias', path: '/home/categorias'),
+  ];
+  if (!ApiConstants.isLocal) {
+    entries.add((
+      icon: Icons.store,
+      label: 'Sucursales',
+      path: '/home/sucursales',
+    ));
+  }
+  return entries;
+}
 
 /// Shared drawer header title.
-const String homeMenuTitle = 'Facturación';
+const String homeMenuTitle = 'Facturacion';
 
 /// Builds the list of navigation tiles + divider + logout tile.
 /// [onNavigate] is called with the path when an entry is tapped.
-/// [onLogout] is called when "Cerrar sesión" is tapped.
+/// [onLogout] is called when "Cerrar sesion" is tapped.
 /// [currentPath] is used to highlight the active menu entry.
 class HomeMenuContent extends StatelessWidget {
   const HomeMenuContent({
@@ -42,13 +52,18 @@ class HomeMenuContent extends StatelessWidget {
           (entry) => DrawerItemTile(
             icon: entry.icon,
             label: entry.label,
-            selected: currentPath == entry.path ||
+            selected:
+                currentPath == entry.path ||
                 (currentPath ?? '').startsWith('${entry.path}/'),
             onTap: () => onNavigate(entry.path),
           ),
         ),
         const SizedBox(height: 8),
-        Divider(indent: 24, endIndent: 24, color: theme.dividerColor.withValues(alpha: 0.5)),
+        Divider(
+          indent: 24,
+          endIndent: 24,
+          color: theme.dividerColor.withValues(alpha: 0.5),
+        ),
         const SizedBox(height: 4),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
@@ -59,7 +74,10 @@ class HomeMenuContent extends StatelessWidget {
               onTap: onLogout,
               borderRadius: BorderRadius.circular(12),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
                 child: Row(
                   children: [
                     Icon(
@@ -69,7 +87,7 @@ class HomeMenuContent extends StatelessWidget {
                     ),
                     const SizedBox(width: 14),
                     Text(
-                      'Cerrar sesión',
+                      'Cerrar sesion',
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: theme.colorScheme.error,
                         fontWeight: FontWeight.w500,

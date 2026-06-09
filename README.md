@@ -13,7 +13,7 @@ bills/
 
 | Parte | Descripcion |
 |------|-------------|
-| **app** | App Flutter: login con seleccion de sucursal, menu (Facturas, Clientes, Productos, Categorias, Sucursales), integracion con la API. Ver [app/README.md](app/README.md). |
+| **app** | App Flutter: integracion con la API y modo local branchless. Ver [app/README.md](app/README.md). |
 | **backend** | API REST para facturas, items, clientes, sucursales, usuarios y privilegios. Ver [backend/README.md](backend/README.md). |
 
 ## Requisitos
@@ -49,7 +49,7 @@ Por defecto la app usa `http://localhost:3000` en desarrollo. Para Android emula
 
 ### 3. App Flutter en modo local
 
-La app tambien puede ejecutarse sin backend externo usando una API local embebida con SQLite:
+La app tambien puede ejecutarse sin backend externo usando una API local embebida con SQLite, sin sucursales:
 
 ```bash
 cd app

@@ -66,8 +66,9 @@ class LocalApiServer {
 
   Future<void> ensureHealthy() async {
     final url = baseUrl;
-    if (url == null)
+    if (url == null) {
       throw const LocalApiStartupException('API local no iniciada');
+    }
     final client = HttpClient()..connectionTimeout = const Duration(seconds: 2);
     try {
       final request = await client.getUrl(Uri.parse('$url/health'));
@@ -185,31 +186,14 @@ class LocalApiServer {
       throw const _HttpError(401, 'Invalid credentials');
     }
     final user = rows.first;
-    final userId = _intValue(user['id']);
-    final branches = _database.read((db) {
-      return db
-          .select(
-            '''
-SELECT b.id, b.name, b.code, ub.is_primary, ub.can_login
-FROM user_branches ub
-JOIN branches b ON b.id = ub.branch_id
-WHERE ub.user_id = ? AND b.is_active = 1
-ORDER BY ub.is_primary DESC, b.name ASC
-''',
-            [userId],
-          )
-          .map(_branchJson)
-          .toList();
-    });
     final token = _auth.signToken(
-      userId: userId,
+      userId: _intValue(user['id']),
       email: user['email'] as String,
       role: user['role'] as String? ?? 'user',
     );
     return _json({
       'message': 'Login successful',
       'user': _userJson(user),
-      'accessibleBranches': branches,
       'token': token,
     });
   }
@@ -222,24 +206,25 @@ ORDER BY ub.is_primary DESC, b.name ASC
 
   Future<Response> _items(Request request) async {
     final claims = _requireAuth(request);
-    final branchId = _requireBranch(request, claims);
     _requirePrivilege(claims.userId, claims.role, 'item', 'read');
     final params = request.url.queryParameters;
     final limit = _limit(params['limit']);
     final offset = _offset(params['offset']);
     final search = params['search']?.trim();
     final category = int.tryParse(params['category'] ?? '');
-    final args = <Object?>[branchId];
-    var where = 'WHERE i.branch_id = ?';
+    final args = <Object?>[];
+    var where = '';
     if (category != null) {
-      where += ' AND i.category_id = ?';
+      where = 'WHERE i.category_id = ?';
       args.add(category);
     }
     if (search != null && search.isNotEmpty) {
+      where += where.isEmpty ? 'WHERE ' : ' AND ';
       where +=
-          ' AND (lower(i.name) LIKE ? OR lower(coalesce(i.description, \'\')) LIKE ?)';
-      args.add('%${search.toLowerCase()}%');
-      args.add('%${search.toLowerCase()}%');
+          "(lower(i.name) LIKE ? OR lower(coalesce(i.description, '')) LIKE ?)";
+      final term = '%${search.toLowerCase()}%';
+      args.add(term);
+      args.add(term);
     }
     final total = _intValue(
       _database.read((db) {
@@ -248,10 +233,10 @@ ORDER BY ub.is_primary DESC, b.name ASC
             .first['c'];
       }),
     );
-    args.addAll([limit, offset]);
     final items = _database.read((db) {
       return db
-          .select('''
+          .select(
+            '''
 SELECT i.*, c.name AS category_name, ir.name AS rate_name, ir.percentage
 FROM items i
 LEFT JOIN item_categories c ON c.id = i.category_id
@@ -259,7 +244,9 @@ JOIN itbis_rates ir ON ir.id = i.itbis_rate_id
 $where
 ORDER BY i.name ASC
 LIMIT ? OFFSET ?
-''', args)
+''',
+            [...args, limit, offset],
+          )
           .map(_itemJson)
           .toList();
     });
@@ -273,13 +260,9 @@ LIMIT ? OFFSET ?
 
   Future<Response> _categories(Request request) async {
     final claims = _requireAuth(request);
-    final branchId = _requireBranch(request, claims);
     _requirePrivilege(claims.userId, claims.role, 'item', 'read');
     final rows = _database.read(
-      (db) => db.select(
-        'SELECT * FROM item_categories WHERE branch_id = ? ORDER BY name ASC',
-        [branchId],
-      ),
+      (db) => db.select('SELECT * FROM item_categories ORDER BY name ASC'),
     );
     return _json({'categories': rows.map(_categoryJson).toList()});
   }
@@ -294,7 +277,6 @@ LIMIT ? OFFSET ?
 
   Future<Response> _createItem(Request request) async {
     final claims = _requireAuth(request);
-    final branchId = _requireBranch(request, claims);
     _requirePrivilege(claims.userId, claims.role, 'item', 'create');
     final body = await _jsonBody(request);
     final name = (body['name'] as String?)?.trim();
@@ -310,65 +292,71 @@ LIMIT ? OFFSET ?
     final description = (body['description'] as String?)?.trim();
     final item = await _database.transaction((db) {
       _ensureRate(db, itbisRateId);
-      if (categoryId != null) _ensureCategory(db, categoryId, branchId);
+      if (categoryId != null) _ensureCategory(db, categoryId);
       final duplicate = db.select(
-        'SELECT id FROM items WHERE branch_id = ? AND lower(name) = lower(?)',
-        [branchId, name],
+        'SELECT id FROM items WHERE lower(name) = lower(?)',
+        [name],
       );
       if (duplicate.isNotEmpty) {
-        throw const _HttpError(
-          400,
-          'Item with this name already exists in this branch',
-        );
+        throw const _HttpError(400, 'Item with this name already exists');
       }
       db.execute(
         '''
-INSERT INTO items (branch_id, name, description, unit_price, category_id, itbis_rate_id)
-VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO items (name, description, unit_price, category_id, itbis_rate_id)
+VALUES (?, ?, ?, ?, ?)
 ''',
-        [
-          branchId,
-          name,
-          description,
-          _round2(unitPrice),
-          categoryId,
-          itbisRateId,
-        ],
+        [name, description, _round2(unitPrice), categoryId, itbisRateId],
       );
-      return _itemById(db, db.lastInsertRowId, branchId);
+      return _itemById(db, db.lastInsertRowId);
     });
     return _json(item, status: 201);
   }
 
   Future<Response> _updateItem(Request request) async {
     final claims = _requireAuth(request);
-    final branchId = _requireBranch(request, claims);
     _requirePrivilege(claims.userId, claims.role, 'item', 'update');
     final id = int.tryParse(request.params['id'] ?? '');
     if (id == null) throw const _HttpError(400, 'Invalid item id');
     final body = await _jsonBody(request);
     final item = await _database.transaction((db) {
-      _ensureItem(db, id, branchId);
+      _ensureItem(db, id);
       final fields = <String>[];
       final args = <Object?>[];
+
       void set(String column, Object? value) {
         fields.add('$column = ?');
         args.add(value);
       }
 
-      if (body.containsKey('name'))
-        set('name', (body['name'] as String).trim());
-      if (body.containsKey('description'))
+      if (body.containsKey('name')) {
+        final nextName = (body['name'] as String).trim();
+        final duplicate = db.select(
+          'SELECT id FROM items WHERE lower(name) = lower(?) AND id != ?',
+          [nextName, id],
+        );
+        if (duplicate.isNotEmpty) {
+          throw const _HttpError(400, 'Item with this name already exists');
+        }
+        set('name', nextName);
+      }
+      if (body.containsKey('description')) {
         set('description', body['description']);
-      if (body.containsKey('unit_price'))
-        set('unit_price', _round2(_numFromBody(body['unit_price'])!));
+      }
+      if (body.containsKey('unit_price')) {
+        final unitPrice = _numFromBody(body['unit_price']);
+        if (unitPrice == null) {
+          throw const _HttpError(400, 'Validation error');
+        }
+        set('unit_price', _round2(unitPrice));
+      }
       if (body.containsKey('category_id')) {
         final categoryId = _intFromBody(body['category_id']);
-        if (categoryId != null) _ensureCategory(db, categoryId, branchId);
+        if (categoryId != null) _ensureCategory(db, categoryId);
         set('category_id', categoryId);
       }
       if (body.containsKey('itbis_rate_id')) {
-        final rateId = _intFromBody(body['itbis_rate_id'])!;
+        final rateId = _intFromBody(body['itbis_rate_id']);
+        if (rateId == null) throw const _HttpError(400, 'Validation error');
         _ensureRate(db, rateId);
         set('itbis_rate_id', rateId);
       }
@@ -376,7 +364,7 @@ VALUES (?, ?, ?, ?, ?, ?)
         args.add(id);
         db.execute('UPDATE items SET ${fields.join(', ')} WHERE id = ?', args);
       }
-      return _itemById(db, id, branchId);
+      return _itemById(db, id);
     });
     return _json(item);
   }
@@ -424,8 +412,9 @@ OR lower(coalesce(tax_id, '')) LIKE ? OR lower(coalesce(email, '')) LIKE ?
     _requirePrivilege(claims.userId, claims.role, 'client', 'create');
     final body = await _jsonBody(request);
     final name = (body['name'] as String?)?.trim();
-    if (name == null || name.isEmpty)
+    if (name == null || name.isEmpty) {
       throw const _HttpError(400, 'Client name is required');
+    }
     final client = await _database.write((db) {
       db.execute(
         '''
@@ -494,23 +483,24 @@ VALUES (?, ?, ?, ?, ?, ?)
 
   Future<Response> _bills(Request request) async {
     final claims = _requireAuth(request);
-    final branchId = _requireBranch(request, claims);
     _requirePrivilege(claims.userId, claims.role, 'bill', 'read');
     final params = request.url.queryParameters;
     final limit = _limit(params['limit']);
     final offset = _offset(params['offset']);
-    final args = <Object?>[branchId];
-    var where = 'WHERE b.branch_id = ?';
+    final args = <Object?>[];
+    var where = '';
     if ((params['status'] ?? '').isNotEmpty) {
-      where += ' AND b.status = ?';
+      where += 'WHERE b.status = ?';
       args.add(params['status']);
     }
     if ((params['user_id'] ?? '').isNotEmpty) {
-      where += ' AND b.user_id = ?';
+      where += where.isEmpty ? 'WHERE ' : ' AND ';
+      where += 'b.user_id = ?';
       args.add(int.parse(params['user_id']!));
     }
     if ((params['client_id'] ?? '').isNotEmpty) {
-      where += ' AND b.client_id = ?';
+      where += where.isEmpty ? 'WHERE ' : ' AND ';
+      where += 'b.client_id = ?';
       args.add(int.parse(params['client_id']!));
     }
     final total = _intValue(
@@ -549,24 +539,20 @@ LIMIT ? OFFSET ?
 
   Future<Response> _billById(Request request) async {
     final claims = _requireAuth(request);
-    final branchId = _requireBranch(request, claims);
     _requirePrivilege(claims.userId, claims.role, 'bill', 'read');
     final id = int.tryParse(request.params['id'] ?? '');
     if (id == null) throw const _HttpError(400, 'Invalid bill id');
-    final bill = _database.read(
-      (db) => _billByWhere(db, 'b.id = ?', [id], branchId),
-    );
+    final bill = _database.read((db) => _billByWhere(db, 'b.id = ?', [id]));
     if (bill == null) throw const _HttpError(404, 'Bill not found');
     return _json(bill);
   }
 
   Future<Response> _billByPublicId(Request request) async {
     final claims = _requireAuth(request);
-    final branchId = _requireBranch(request, claims);
     _requirePrivilege(claims.userId, claims.role, 'bill', 'read');
     final publicId = request.params['publicId'];
     final bill = _database.read(
-      (db) => _billByWhere(db, 'b.public_id = ?', [publicId], branchId),
+      (db) => _billByWhere(db, 'b.public_id = ?', [publicId]),
     );
     if (bill == null) throw const _HttpError(404, 'Bill not found');
     return _json(bill);
@@ -574,12 +560,12 @@ LIMIT ? OFFSET ?
 
   Future<Response> _createBill(Request request) async {
     final claims = _requireAuth(request);
-    final branchId = _requireBranch(request, claims);
     _requirePrivilege(claims.userId, claims.role, 'bill', 'create');
     final body = await _jsonBody(request);
     final title = (body['title'] as String?)?.trim();
-    if (title == null || title.isEmpty)
+    if (title == null || title.isEmpty) {
       throw const _HttpError(400, 'Validation error');
+    }
     final bill = await _database.transaction((db) {
       final clientId = _intFromBody(body['client_id']);
       if (clientId != null &&
@@ -590,12 +576,11 @@ LIMIT ? OFFSET ?
       }
       db.execute(
         '''
-INSERT INTO bills (public_id, branch_id, user_id, client_id, title, description, subtotal, tax_amount, amount, status)
-VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?)
+INSERT INTO bills (public_id, user_id, client_id, title, description, subtotal, tax_amount, amount, status)
+VALUES (?, ?, ?, ?, ?, 0, 0, ?, ?)
 ''',
         [
           _uuid(),
-          branchId,
           claims.userId,
           clientId,
           title,
@@ -604,14 +589,13 @@ VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?)
           body['status'] ?? 'draft',
         ],
       );
-      return _billByWhere(db, 'b.id = ?', [db.lastInsertRowId], branchId)!;
+      return _billByWhere(db, 'b.id = ?', [db.lastInsertRowId])!;
     });
     return _json(bill, status: 201);
   }
 
   Future<Response> _createBillItem(Request request) async {
     final claims = _requireAuth(request);
-    final branchId = _requireBranch(request, claims);
     _requirePrivilege(claims.userId, claims.role, 'bill', 'create');
     final body = await _jsonBody(request);
     final billId = _intFromBody(body['bill_id']);
@@ -621,18 +605,15 @@ VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?)
       throw const _HttpError(400, 'Validation error');
     }
     final billItem = await _database.transaction((db) {
-      final billRows = db.select(
-        'SELECT id FROM bills WHERE id = ? AND branch_id = ?',
-        [billId, branchId],
-      );
+      final billRows = db.select('SELECT id FROM bills WHERE id = ?', [billId]);
       if (billRows.isEmpty) throw const _HttpError(404, 'Bill not found');
       final itemRows = db.select(
         '''
 SELECT i.*, ir.name AS rate_name, ir.percentage
 FROM items i JOIN itbis_rates ir ON ir.id = i.itbis_rate_id
-WHERE i.id = ? AND i.branch_id = ?
+WHERE i.id = ?
 ''',
-        [itemId, branchId],
+        [itemId],
       );
       if (itemRows.isEmpty) throw const _HttpError(404, 'Item not found');
       final existing = db.select(
@@ -685,35 +666,6 @@ VALUES (?, ?, ?, ?, ?, ?)
     return claims;
   }
 
-  int _requireBranch(Request request, LocalTokenClaims claims) {
-    final raw = request.headers['x-branch-id'];
-    final branchId = int.tryParse(raw ?? '');
-    if (branchId == null || branchId < 1) {
-      throw const _HttpError(400, 'Branch ID is required (X-Branch-Id header)');
-    }
-    final rows = _database.read(
-      (db) => db.select('SELECT * FROM branches WHERE id = ?', [branchId]),
-    );
-    if (rows.isEmpty) throw const _HttpError(404, 'Branch not found');
-    if (_intValue(rows.first['is_active']) != 1) {
-      throw const _HttpError(403, 'This branch is not active');
-    }
-    if (_hasPrivilege(claims.userId, claims.role, 'all', 'all'))
-      return branchId;
-    final access = _database.read((db) {
-      return db.select(
-        '''
-SELECT id FROM user_branches
-WHERE user_id = ? AND branch_id = ? AND can_login = 1
-''',
-        [claims.userId, branchId],
-      );
-    });
-    if (access.isEmpty)
-      throw const _HttpError(403, 'You do not have access to this branch');
-    return branchId;
-  }
-
   void _requirePrivilege(
     int userId,
     String role,
@@ -736,7 +688,7 @@ WHERE user_id = ? AND branch_id = ? AND can_login = 1
 SELECT up.id FROM user_privileges up
 JOIN privileges p ON p.id = up.privilege_id
 WHERE up.user_id = ? AND up.is_active = 1 AND p.is_active = 1
-AND ((p.resource = ? AND p.action = ?) OR (p.resource = 'all' AND p.action = 'all'))
+AND p.resource = ? AND p.action = ?
 AND (up.expires_at IS NULL OR up.expires_at > CURRENT_TIMESTAMP)
 LIMIT 1
 ''',
@@ -774,14 +726,6 @@ Map<String, dynamic> _userJson(Row row) => {
   'username': row['username'],
   'email': row['email'],
   'role': row['role'],
-};
-
-Map<String, dynamic> _branchJson(Row row) => {
-  'id': _intValue(row['id']),
-  'name': row['name'],
-  'code': row['code'],
-  'isPrimary': _intValue(row['is_primary']) == 1,
-  'canLogin': _intValue(row['can_login']) == 1,
 };
 
 Map<String, dynamic> _categoryJson(Row row) => {
@@ -828,7 +772,6 @@ Map<String, dynamic> _clientJson(Row row) => {
 Map<String, dynamic> _billJson(Row row) => {
   'id': _intValue(row['id']),
   'publicId': row['public_id'],
-  'branchId': _intValue(row['branch_id']),
   'title': row['title'],
   'description': row['description'],
   'subtotal': _round2(_doubleValue(row['subtotal'])),
@@ -871,55 +814,45 @@ Map<String, dynamic>? _billByWhere(
   Database db,
   String condition,
   List<Object?> args,
-  int branchId,
 ) {
-  final rows = db.select(
-    '''
+  final rows = db.select('''
 SELECT b.*, u.username, u.email AS user_email, c.name AS client_name,
 c.identifier AS client_identifier, c.tax_id AS client_tax_id, c.email AS client_email,
 c.phone AS client_phone, c.address AS client_address
 FROM bills b
 JOIN users u ON u.id = b.user_id
 LEFT JOIN clients c ON c.id = b.client_id
-WHERE b.branch_id = ? AND $condition
+WHERE $condition
 LIMIT 1
-''',
-    [branchId, ...args],
-  );
+''', args);
   if (rows.isEmpty) return null;
   return _billJson(rows.first);
 }
 
-Map<String, dynamic> _itemById(Database db, int id, int branchId) {
+Map<String, dynamic> _itemById(Database db, int id) {
   final rows = db.select(
     '''
 SELECT i.*, c.name AS category_name, ir.name AS rate_name, ir.percentage
 FROM items i
 LEFT JOIN item_categories c ON c.id = i.category_id
 JOIN itbis_rates ir ON ir.id = i.itbis_rate_id
-WHERE i.id = ? AND i.branch_id = ?
+WHERE i.id = ?
 LIMIT 1
 ''',
-    [id, branchId],
+    [id],
   );
   if (rows.isEmpty) throw const _HttpError(404, 'Item not found');
   return _itemJson(rows.first);
 }
 
-void _ensureItem(Database db, int id, int branchId) {
-  if (db.select('SELECT id FROM items WHERE id = ? AND branch_id = ?', [
-    id,
-    branchId,
-  ]).isEmpty) {
+void _ensureItem(Database db, int id) {
+  if (db.select('SELECT id FROM items WHERE id = ?', [id]).isEmpty) {
     throw const _HttpError(404, 'Item not found');
   }
 }
 
-void _ensureCategory(Database db, int id, int branchId) {
-  if (db.select(
-    'SELECT id FROM item_categories WHERE id = ? AND branch_id = ?',
-    [id, branchId],
-  ).isEmpty) {
+void _ensureCategory(Database db, int id) {
+  if (db.select('SELECT id FROM item_categories WHERE id = ?', [id]).isEmpty) {
     throw const _HttpError(404, 'Category not found');
   }
 }

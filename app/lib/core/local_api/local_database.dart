@@ -5,7 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart';
 
-const _schemaVersion = 1;
+const _schemaVersion = 2;
 
 class LocalDatabase {
   LocalDatabase._(this.db, this.path);
@@ -18,6 +18,12 @@ class LocalDatabase {
     final dir = await getApplicationSupportDirectory();
     await Directory(dir.path).create(recursive: true);
     final path = p.join(dir.path, 'bills_local.sqlite');
+
+    final existingVersion = await _readExistingSchemaVersion(path);
+    if (existingVersion > 0 && existingVersion != _schemaVersion) {
+      await _resetDatabaseFiles(path);
+    }
+
     final db = sqlite3.open(path);
     final localDb = LocalDatabase._(db, path);
     localDb._configure();
@@ -64,6 +70,38 @@ class LocalDatabase {
   void close() => db.dispose();
 }
 
+Future<int> _readExistingSchemaVersion(String path) async {
+  final file = File(path);
+  if (!await file.exists()) return 0;
+
+  final db = sqlite3.open(path);
+  try {
+    final table = db.select(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'local_schema_versions' LIMIT 1",
+    );
+    if (table.isEmpty) return 0;
+
+    final rows = db.select(
+      'SELECT MAX(version) AS version FROM local_schema_versions',
+    );
+    final value = rows.first['version'];
+    if (value == null) return 0;
+    if (value is int) return value;
+    return int.tryParse(value.toString()) ?? 0;
+  } finally {
+    db.dispose();
+  }
+}
+
+Future<void> _resetDatabaseFiles(String path) async {
+  for (final suffix in ['', '-wal', '-shm']) {
+    final file = File('$path$suffix');
+    if (await file.exists()) {
+      await file.delete();
+    }
+  }
+}
+
 void _applySchema(Database db) {
   db.execute('''
 CREATE TABLE IF NOT EXISTS local_schema_versions (
@@ -93,22 +131,9 @@ CREATE TABLE IF NOT EXISTS clients (
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE TABLE IF NOT EXISTS branches (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  code TEXT NOT NULL UNIQUE,
-  tax_id TEXT,
-  address TEXT,
-  phone TEXT,
-  email TEXT,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
 CREATE TABLE IF NOT EXISTS bills (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   public_id TEXT NOT NULL UNIQUE,
-  branch_id INTEGER NOT NULL REFERENCES branches(id) ON DELETE RESTRICT,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL,
   title TEXT NOT NULL,
@@ -122,12 +147,10 @@ CREATE TABLE IF NOT EXISTS bills (
 );
 CREATE TABLE IF NOT EXISTS item_categories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  branch_id INTEGER NOT NULL REFERENCES branches(id) ON DELETE RESTRICT,
-  name TEXT NOT NULL,
+  name TEXT NOT NULL UNIQUE,
   description TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(branch_id, name)
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS itbis_rates (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -138,8 +161,7 @@ CREATE TABLE IF NOT EXISTS itbis_rates (
 );
 CREATE TABLE IF NOT EXISTS items (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  branch_id INTEGER NOT NULL REFERENCES branches(id) ON DELETE RESTRICT,
-  name TEXT NOT NULL,
+  name TEXT NOT NULL UNIQUE,
   description TEXT,
   unit_price REAL NOT NULL,
   category_id INTEGER REFERENCES item_categories(id) ON DELETE SET NULL,
@@ -158,16 +180,6 @@ CREATE TABLE IF NOT EXISTS bill_details (
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(bill_id, item_id)
-);
-CREATE TABLE IF NOT EXISTS user_branches (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  branch_id INTEGER NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
-  is_primary INTEGER NOT NULL DEFAULT 0,
-  can_login INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(user_id, branch_id)
 );
 CREATE TABLE IF NOT EXISTS privileges (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -192,25 +204,18 @@ CREATE TABLE IF NOT EXISTS user_privileges (
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(user_id, privilege_id)
 );
-CREATE INDEX IF NOT EXISTS idx_bills_branch_id ON bills(branch_id);
 CREATE INDEX IF NOT EXISTS idx_bills_user_id ON bills(user_id);
 CREATE INDEX IF NOT EXISTS idx_bills_client_id ON bills(client_id);
-CREATE INDEX IF NOT EXISTS idx_item_categories_branch_id ON item_categories(branch_id);
-CREATE INDEX IF NOT EXISTS idx_items_branch_id ON items(branch_id);
 CREATE INDEX IF NOT EXISTS idx_items_category_id ON items(category_id);
 CREATE INDEX IF NOT EXISTS idx_items_itbis_rate_id ON items(itbis_rate_id);
 CREATE INDEX IF NOT EXISTS idx_bill_details_bill_id ON bill_details(bill_id);
 CREATE INDEX IF NOT EXISTS idx_bill_details_item_id ON bill_details(item_id);
-CREATE INDEX IF NOT EXISTS idx_user_branches_user_id ON user_branches(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_branches_branch_id ON user_branches(branch_id);
 CREATE INDEX IF NOT EXISTS idx_privileges_resource ON privileges(resource);
 CREATE INDEX IF NOT EXISTS idx_user_privileges_user_id ON user_privileges(user_id);
 CREATE TRIGGER IF NOT EXISTS update_users_updated_at AFTER UPDATE ON users
 BEGIN UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id; END;
 CREATE TRIGGER IF NOT EXISTS update_clients_updated_at AFTER UPDATE ON clients
 BEGIN UPDATE clients SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id; END;
-CREATE TRIGGER IF NOT EXISTS update_branches_updated_at AFTER UPDATE ON branches
-BEGIN UPDATE branches SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id; END;
 CREATE TRIGGER IF NOT EXISTS update_bills_updated_at AFTER UPDATE ON bills
 BEGIN UPDATE bills SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id; END;
 CREATE TRIGGER IF NOT EXISTS update_item_categories_updated_at AFTER UPDATE ON item_categories

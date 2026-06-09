@@ -1,22 +1,22 @@
-import 'package:app/features/clients/presentation/bloc/clients_bloc.dart';
-import 'package:app/features/clients/presentation/bloc/clients_event.dart';
+import 'package:app/core/constants/api_constants.dart';
 import 'package:app/features/bills/presentation/bloc/bills_bloc.dart';
 import 'package:app/features/bills/presentation/bloc/bills_event.dart';
-import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-
+import 'package:app/features/bills/presentation/views/bills_view.dart';
+import 'package:app/features/clients/presentation/bloc/clients_bloc.dart';
+import 'package:app/features/clients/presentation/bloc/clients_event.dart';
+import 'package:app/features/clients/presentation/views/clients_view.dart';
 import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:app/features/auth/presentation/views/login_view.dart';
 import 'package:app/features/home/presentation/views/home_shell_view.dart';
 import 'package:app/features/home/presentation/views/placeholder_view.dart';
 import 'package:app/features/products/presentation/views/products_view.dart';
-import 'package:app/features/clients/presentation/views/clients_view.dart';
-import 'package:app/features/bills/presentation/views/bills_view.dart';
 import 'package:app/features/sales/presentation/bloc/sale_bloc.dart';
 import 'package:app/features/sales/presentation/views/sale_view.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:app/injection.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 /// Listenable that notifies when [AuthBloc] state changes so GoRouter can re-run redirect.
 class _AuthRefreshNotifier extends ChangeNotifier {
@@ -32,6 +32,7 @@ late final GoRouter appRouter;
 void initRouter() {
   final authBloc = sl<AuthBloc>();
   final refreshNotifier = _AuthRefreshNotifier(authBloc);
+  final isLocal = ApiConstants.isLocal;
 
   appRouter = GoRouter(
     refreshListenable: refreshNotifier,
@@ -48,18 +49,18 @@ void initRouter() {
         return '/login';
       }
       if (location == '/') {
-        return '/login'; // If authenticated, first if would have returned
+        return '/login';
       }
       if (isAuthenticated && location == '/home') {
+        return '/home/facturas';
+      }
+      if (isLocal && location == '/home/sucursales') {
         return '/home/facturas';
       }
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginView(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginView()),
       ShellRoute(
         builder: (context, state, child) => HomeShellView(child: child),
         routes: [
@@ -77,8 +78,7 @@ void initRouter() {
               GoRoute(
                 path: 'clientes',
                 builder: (context, state) => BlocProvider<ClientsBloc>(
-                  create: (_) =>
-                      sl<ClientsBloc>()..add(const ClientsLoaded()),
+                  create: (_) => sl<ClientsBloc>()..add(const ClientsLoaded()),
                   child: const ClientsView(),
                 ),
               ),
@@ -96,13 +96,14 @@ void initRouter() {
               GoRoute(
                 path: 'categorias',
                 builder: (context, state) =>
-                    const PlaceholderView(title: 'Categorías'),
+                    const PlaceholderView(title: 'Categorias'),
               ),
-              GoRoute(
-                path: 'sucursales',
-                builder: (context, state) =>
-                    const PlaceholderView(title: 'Sucursales'),
-              ),
+              if (!isLocal)
+                GoRoute(
+                  path: 'sucursales',
+                  builder: (context, state) =>
+                      const PlaceholderView(title: 'Sucursales'),
+                ),
             ],
           ),
         ],

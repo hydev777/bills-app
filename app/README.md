@@ -1,6 +1,6 @@
 # Facturacion - App Flutter
 
-Cliente Flutter del sistema de facturacion. Login con seleccion de sucursal, menu lateral (Facturas, Clientes, Productos, Categorias, Sucursales) e integracion con la API del backend.
+Cliente Flutter del sistema de facturacion. Integra la API del backend en modo remoto y una API SQLite embebida en modo local branchless.
 
 ## Requisitos
 
@@ -65,7 +65,7 @@ lib/
 |-- core/
 |   |-- constants/           # ApiConstants (baseUrl, timeouts, paths)
 |   |-- local_api/           # API local embebida, auth y SQLite
-|   |-- network/             # ApiClient (Dio), BranchInterceptor (X-Branch-Id)
+|   |-- network/             # ApiClient (Dio), BranchInterceptor remoto
 |   |-- theme/               # AppTheme
 |   `-- utils/
 `-- features/
@@ -93,9 +93,9 @@ lib/
 | `/home/clientes` | Clientes |
 | `/home/productos` | Productos |
 | `/home/categorias` | Categorias |
-| `/home/sucursales` | Sucursales |
+| `/home/sucursales` | Sucursales (solo remoto) |
 
-Tras el login, las peticiones a la API que requieren sucursal envian el header `X-Branch-Id` (BranchInterceptor) con la sucursal seleccionada.
+En modo remoto, las peticiones que requieren sucursal envian el header `X-Branch-Id` (BranchInterceptor) con la sucursal seleccionada. En `ENV=local` no existe concepto de sucursal.
 
 ## Dependencias principales
 

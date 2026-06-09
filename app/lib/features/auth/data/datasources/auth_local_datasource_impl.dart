@@ -14,7 +14,7 @@ const _keySelectedBranchId = 'auth_selected_branch_id';
 
 class AuthLocalDataSourceImpl extends AuthLocalDataSource {
   AuthLocalDataSourceImpl({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _storage;
 
@@ -27,15 +27,23 @@ class AuthLocalDataSourceImpl extends AuthLocalDataSource {
       'email': session.user.email,
     });
     await _storage.write(key: _keyUser, value: userJson);
+    if (session.accessibleBranches.isEmpty &&
+        session.selectedBranchId == null) {
+      await _storage.delete(key: _keyBranches);
+      await _storage.delete(key: _keySelectedBranchId);
+      return;
+    }
     final branchesJson = jsonEncode(
       session.accessibleBranches
-          .map((b) => {
-                'id': b.id,
-                'name': b.name,
-                'code': b.code,
-                'isPrimary': b.isPrimary,
-                'canLogin': b.canLogin,
-              })
+          .map(
+            (b) => {
+              'id': b.id,
+              'name': b.name,
+              'code': b.code,
+              'isPrimary': b.isPrimary,
+              'canLogin': b.canLogin,
+            },
+          )
           .toList(),
     );
     await _storage.write(key: _keyBranches, value: branchesJson);
@@ -63,7 +71,9 @@ class AuthLocalDataSourceImpl extends AuthLocalDataSource {
     if (branchesStr != null && branchesStr.isNotEmpty) {
       final list = jsonDecode(branchesStr) as List<dynamic>;
       branches = list
-          .map((e) => BranchModel.fromJson(e as Map<String, dynamic>).toEntity())
+          .map(
+            (e) => BranchModel.fromJson(e as Map<String, dynamic>).toEntity(),
+          )
           .toList();
     }
 
