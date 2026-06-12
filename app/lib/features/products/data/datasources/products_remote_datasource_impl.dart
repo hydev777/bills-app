@@ -18,11 +18,9 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
     int limit = 50,
     int offset = 0,
   }) async {
-    final queryParams = <String, dynamic>{
-      'limit': limit,
-      'offset': offset,
-    };
-    if (category != null && category.isNotEmpty) queryParams['category'] = category;
+    final queryParams = <String, dynamic>{'limit': limit, 'offset': offset};
+    if (category != null && category.isNotEmpty)
+      queryParams['category'] = category;
     if (search != null && search.isNotEmpty) queryParams['search'] = search;
 
     final response = await _dio.get<Map<String, dynamic>>(
@@ -30,26 +28,44 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
       queryParameters: queryParams,
     );
     final data = response.data;
-    if (data == null) throw DioException(requestOptions: response.requestOptions, message: 'Empty response');
+    if (data == null)
+      throw DioException(
+        requestOptions: response.requestOptions,
+        message: 'Empty response',
+      );
     return data;
   }
 
   @override
   Future<List<ItemCategoryModel>> getCategories() async {
-    final response = await _dio.get<Map<String, dynamic>>('/api/items/categories');
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/api/items/categories',
+    );
     final data = response.data;
-    if (data == null) throw DioException(requestOptions: response.requestOptions, message: 'Empty response');
+    if (data == null)
+      throw DioException(
+        requestOptions: response.requestOptions,
+        message: 'Empty response',
+      );
     final list = data['categories'] as List<dynamic>? ?? [];
-    return list.map((e) => ItemCategoryModel.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => ItemCategoryModel.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   @override
   Future<List<ItbisRateModel>> getItbisRates() async {
     final response = await _dio.get<Map<String, dynamic>>('/api/itbis-rates');
     final data = response.data;
-    if (data == null) throw DioException(requestOptions: response.requestOptions, message: 'Empty response');
+    if (data == null)
+      throw DioException(
+        requestOptions: response.requestOptions,
+        message: 'Empty response',
+      );
     final list = data['itbis_rates'] as List<dynamic>? ?? [];
-    return list.map((e) => ItbisRateModel.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => ItbisRateModel.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   @override
@@ -65,12 +81,20 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
       'unit_price': unitPrice,
       'itbis_rate_id': itbisRateId,
     };
-    if (description != null && description.isNotEmpty) body['description'] = description;
+    if (description != null && description.isNotEmpty)
+      body['description'] = description;
     if (categoryId != null) body['category_id'] = categoryId;
 
-    final response = await _dio.post<Map<String, dynamic>>('/api/items', data: body);
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/items',
+      data: body,
+    );
     final data = response.data;
-    if (data == null) throw DioException(requestOptions: response.requestOptions, message: 'Empty response');
+    if (data == null)
+      throw DioException(
+        requestOptions: response.requestOptions,
+        message: 'Empty response',
+      );
     return ItemModel.fromJson(data);
   }
 
@@ -90,9 +114,16 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
     if (categoryId != null) body['category_id'] = categoryId;
     if (itbisRateId != null) body['itbis_rate_id'] = itbisRateId;
 
-    final response = await _dio.put<Map<String, dynamic>>('/api/items/$id', data: body);
+    final response = await _dio.put<Map<String, dynamic>>(
+      '/api/items/$id',
+      data: body,
+    );
     final data = response.data;
-    if (data == null) throw DioException(requestOptions: response.requestOptions, message: 'Empty response');
+    if (data == null)
+      throw DioException(
+        requestOptions: response.requestOptions,
+        message: 'Empty response',
+      );
     return ItemModel.fromJson(data);
   }
 }

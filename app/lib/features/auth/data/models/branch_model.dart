@@ -20,10 +20,10 @@ class BranchModel extends BranchEntity {
   }
 
   BranchEntity toEntity() => BranchEntity(
-        id: id,
-        name: name,
-        code: code,
-        isPrimary: isPrimary,
-        canLogin: canLogin,
-      );
+    id: id,
+    name: name,
+    code: code,
+    isPrimary: isPrimary,
+    canLogin: canLogin,
+  );
 }

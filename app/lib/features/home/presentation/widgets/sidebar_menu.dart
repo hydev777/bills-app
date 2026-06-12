@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:app/features/auth/presentation/bloc/auth_event.dart';
+import 'package:app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:app/injection.dart';
 
 import 'home_menu_entries.dart';
@@ -19,6 +21,10 @@ class SidebarMenu extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final surface = colorScheme.surfaceContainerLowest;
     final currentPath = GoRouterState.of(context).uri.path;
+    final session = switch (sl<AuthBloc>().state) {
+      AuthAuthenticated(:final session) => session,
+      _ => null,
+    };
 
     return Container(
       width: width,
@@ -66,6 +72,7 @@ class SidebarMenu extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           HomeMenuContent(
+            session: session,
             currentPath: currentPath,
             onNavigate: (path) => context.go(path),
             onLogout: () {

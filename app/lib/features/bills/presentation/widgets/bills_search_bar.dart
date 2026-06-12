@@ -54,10 +54,7 @@ class _BillsSearchBarState extends State<BillsSearchBar> {
           IconButton(
             tooltip: 'Buscar',
             onPressed: _submit,
-            icon: Icon(
-              Icons.search_rounded,
-              color: theme.colorScheme.primary,
-            ),
+            icon: Icon(Icons.search_rounded, color: theme.colorScheme.primary),
           ),
           IconButton(
             tooltip: 'Limpiar',
@@ -72,4 +69,3 @@ class _BillsSearchBarState extends State<BillsSearchBar> {
     );
   }
 }
-

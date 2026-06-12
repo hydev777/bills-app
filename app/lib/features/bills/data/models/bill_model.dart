@@ -44,18 +44,17 @@ class BillModel extends BillEntity {
   }
 
   BillEntity toEntity() => BillEntity(
-        id: id,
-        publicId: publicId,
-        title: title,
-        description: description,
-        status: status,
-        amount: amount,
-        createdAt: createdAt,
-        clientId: clientId,
-        clientName: clientName,
-        clientIdentifier: clientIdentifier,
-        userId: userId,
-        userName: userName,
-      );
+    id: id,
+    publicId: publicId,
+    title: title,
+    description: description,
+    status: status,
+    amount: amount,
+    createdAt: createdAt,
+    clientId: clientId,
+    clientName: clientName,
+    clientIdentifier: clientIdentifier,
+    userId: userId,
+    userName: userName,
+  );
 }
-

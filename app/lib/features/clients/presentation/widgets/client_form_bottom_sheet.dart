@@ -19,7 +19,8 @@ class ClientFormBottomSheet extends StatefulWidget {
     String? email,
     String? phone,
     String? address,
-  })? onCreate;
+  })?
+  onCreate;
   final void Function({
     required int id,
     required String name,
@@ -28,7 +29,8 @@ class ClientFormBottomSheet extends StatefulWidget {
     String? email,
     String? phone,
     String? address,
-  })? onUpdate;
+  })?
+  onUpdate;
   final VoidCallback onCancel;
 
   @override
@@ -137,7 +139,9 @@ class _ClientFormBottomSheetState extends State<ClientFormBottomSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                widget.initialClient != null ? 'Editar cliente' : 'Nuevo cliente',
+                widget.initialClient != null
+                    ? 'Editar cliente'
+                    : 'Nuevo cliente',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
@@ -260,4 +264,3 @@ class _ClientFormFields extends StatelessWidget {
     );
   }
 }
-

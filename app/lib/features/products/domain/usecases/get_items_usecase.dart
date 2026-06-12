@@ -12,11 +12,10 @@ class GetItemsUseCase {
     String? search,
     int limit = 50,
     int offset = 0,
-  }) =>
-      _repository.getItems(
-        category: category,
-        search: search,
-        limit: limit,
-        offset: offset,
-      );
+  }) => _repository.getItems(
+    category: category,
+    search: search,
+    limit: limit,
+    offset: offset,
+  );
 }

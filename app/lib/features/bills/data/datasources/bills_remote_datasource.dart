@@ -32,4 +32,3 @@ abstract class BillsRemoteDataSource {
     required List<({int itemId, int quantity, double unitPrice})> lines,
   });
 }
-

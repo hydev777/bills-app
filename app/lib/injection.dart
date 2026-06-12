@@ -7,8 +7,10 @@ import 'package:app/features/auth/data/datasources/auth_remote_datasource_impl.d
 import 'package:app/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:app/features/auth/domain/usecases/get_session_usecase.dart';
+import 'package:app/features/auth/domain/usecases/has_local_users_usecase.dart';
 import 'package:app/features/auth/domain/usecases/login_usecase.dart';
 import 'package:app/features/auth/domain/usecases/logout_usecase.dart';
+import 'package:app/features/auth/domain/usecases/create_initial_admin_usecase.dart';
 import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:app/features/products/data/datasources/products_remote_datasource.dart';
 import 'package:app/features/products/data/datasources/products_remote_datasource_impl.dart';
@@ -38,6 +40,15 @@ import 'package:app/features/bills/domain/usecases/get_bill_by_public_id_usecase
 import 'package:app/features/bills/domain/usecases/create_sale_bill_usecase.dart';
 import 'package:app/features/bills/presentation/bloc/bills_bloc.dart';
 import 'package:app/features/sales/presentation/bloc/sale_bloc.dart';
+import 'package:app/features/users/data/datasources/local_users_remote_datasource.dart';
+import 'package:app/features/users/data/datasources/local_users_remote_datasource_impl.dart';
+import 'package:app/features/users/data/repositories/local_users_repository_impl.dart';
+import 'package:app/features/users/domain/repositories/local_users_repository.dart';
+import 'package:app/features/users/domain/usecases/create_local_user_usecase.dart';
+import 'package:app/features/users/domain/usecases/delete_local_user_usecase.dart';
+import 'package:app/features/users/domain/usecases/get_local_users_usecase.dart';
+import 'package:app/features/users/domain/usecases/update_local_user_usecase.dart';
+import 'package:app/features/users/presentation/bloc/users_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
 
@@ -79,6 +90,12 @@ Future<void> initInjection({
   sl.registerLazySingleton<GetSessionUseCase>(
     () => GetSessionUseCase(sl<AuthRepository>()),
   );
+  sl.registerLazySingleton<HasLocalUsersUseCase>(
+    () => HasLocalUsersUseCase(sl<AuthRepository>()),
+  );
+  sl.registerLazySingleton<CreateInitialAdminUseCase>(
+    () => CreateInitialAdminUseCase(sl<AuthRepository>()),
+  );
 
   // Auth - Presentation (BLoC as singleton for router redirect)
   sl.registerLazySingleton<AuthBloc>(
@@ -86,6 +103,8 @@ Future<void> initInjection({
       loginUseCase: sl<LoginUseCase>(),
       logoutUseCase: sl<LogoutUseCase>(),
       getSessionUseCase: sl<GetSessionUseCase>(),
+      hasLocalUsersUseCase: sl<HasLocalUsersUseCase>(),
+      createInitialAdminUseCase: sl<CreateInitialAdminUseCase>(),
     ),
   );
 
@@ -189,6 +208,41 @@ Future<void> initInjection({
     () => SaleBloc(
       getItemsUseCase: sl<GetItemsUseCase>(),
       createSaleBillUseCase: sl<CreateSaleBillUseCase>(),
+    ),
+  );
+
+  // Users - Data
+  sl.registerLazySingleton<LocalUsersRemoteDataSource>(
+    () => LocalUsersRemoteDataSourceImpl(sl<Dio>()),
+  );
+  sl.registerLazySingleton<LocalUsersRepository>(
+    () => LocalUsersRepositoryImpl(
+      remote: sl<LocalUsersRemoteDataSource>(),
+      authLocalDataSource: sl<AuthLocalDataSource>(),
+    ),
+  );
+
+  // Users - Domain
+  sl.registerLazySingleton<GetLocalUsersUseCase>(
+    () => GetLocalUsersUseCase(sl<LocalUsersRepository>()),
+  );
+  sl.registerLazySingleton<CreateLocalUserUseCase>(
+    () => CreateLocalUserUseCase(sl<LocalUsersRepository>()),
+  );
+  sl.registerLazySingleton<UpdateLocalUserUseCase>(
+    () => UpdateLocalUserUseCase(sl<LocalUsersRepository>()),
+  );
+  sl.registerLazySingleton<DeleteLocalUserUseCase>(
+    () => DeleteLocalUserUseCase(sl<LocalUsersRepository>()),
+  );
+
+  // Users - Presentation
+  sl.registerFactory<UsersBloc>(
+    () => UsersBloc(
+      getLocalUsersUseCase: sl<GetLocalUsersUseCase>(),
+      createLocalUserUseCase: sl<CreateLocalUserUseCase>(),
+      updateLocalUserUseCase: sl<UpdateLocalUserUseCase>(),
+      deleteLocalUserUseCase: sl<DeleteLocalUserUseCase>(),
     ),
   );
 }

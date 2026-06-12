@@ -33,8 +33,7 @@ class BillsView extends StatelessWidget {
           if (state is BillsError) {
             return ErrorWithRetry(
               message: state.message,
-              onRetry: () =>
-                  context.read<BillsBloc>().add(const BillsLoaded()),
+              onRetry: () => context.read<BillsBloc>().add(const BillsLoaded()),
             );
           }
           if (state is BillsLoadedState) {
@@ -42,15 +41,12 @@ class BillsView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 BillsSearchBar(
-                  onSearch: (query) => context
-                      .read<BillsBloc>()
-                      .add(BillSearchRequested(query)),
+                  onSearch: (query) =>
+                      context.read<BillsBloc>().add(BillSearchRequested(query)),
                   onClear: () =>
                       context.read<BillsBloc>().add(const BillsLoaded()),
                 ),
-                Expanded(
-                  child: BillsListWidget(bills: state.bills),
-                ),
+                Expanded(child: BillsListWidget(bills: state.bills)),
               ],
             );
           }
@@ -60,4 +56,3 @@ class BillsView extends StatelessWidget {
     );
   }
 }
-

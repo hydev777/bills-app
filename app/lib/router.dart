@@ -13,6 +13,9 @@ import 'package:app/features/home/presentation/views/placeholder_view.dart';
 import 'package:app/features/products/presentation/views/products_view.dart';
 import 'package:app/features/sales/presentation/bloc/sale_bloc.dart';
 import 'package:app/features/sales/presentation/views/sale_view.dart';
+import 'package:app/features/users/presentation/bloc/users_bloc.dart';
+import 'package:app/features/users/presentation/bloc/users_event.dart';
+import 'package:app/features/users/presentation/views/users_view.dart';
 import 'package:app/injection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -57,6 +60,11 @@ void initRouter() {
       if (isLocal && location == '/home/sucursales') {
         return '/home/facturas';
       }
+      if (isLocal &&
+          location.startsWith('/home/usuarios') &&
+          (!_isLocalAdmin(authState))) {
+        return '/home/facturas';
+      }
       return null;
     },
     routes: [
@@ -98,6 +106,14 @@ void initRouter() {
                 builder: (context, state) =>
                     const PlaceholderView(title: 'Categorias'),
               ),
+              if (isLocal)
+                GoRoute(
+                  path: 'usuarios',
+                  builder: (context, state) => BlocProvider<UsersBloc>(
+                    create: (_) => sl<UsersBloc>()..add(const UsersLoaded()),
+                    child: const UsersView(),
+                  ),
+                ),
               if (!isLocal)
                 GoRoute(
                   path: 'sucursales',
@@ -110,4 +126,9 @@ void initRouter() {
       ),
     ],
   );
+}
+
+bool _isLocalAdmin(AuthState authState) {
+  return authState is AuthAuthenticated &&
+      authState.session.user.role.toLowerCase() == 'administrador';
 }

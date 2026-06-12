@@ -24,7 +24,8 @@ class ProductFormWidget extends StatefulWidget {
     required double unitPrice,
     int? categoryId,
     required int itbisRateId,
-  })? onCreate;
+  })?
+  onCreate;
   final void Function({
     required int id,
     required String name,
@@ -32,7 +33,8 @@ class ProductFormWidget extends StatefulWidget {
     required double unitPrice,
     int? categoryId,
     required int itbisRateId,
-  })? onUpdate;
+  })?
+  onUpdate;
   final VoidCallback onCancel;
 
   @override
@@ -117,7 +119,13 @@ class _ProductFormWidgetState extends State<ProductFormWidget> {
         itbisRateId: itbisRateId,
       );
     } else if (widget.onCreate != null) {
-      widget.onCreate!(name: name, description: description, unitPrice: price, categoryId: categoryId, itbisRateId: itbisRateId);
+      widget.onCreate!(
+        name: name,
+        description: description,
+        unitPrice: price,
+        categoryId: categoryId,
+        itbisRateId: itbisRateId,
+      );
     } else {
       widget.onCancel();
     }
@@ -140,7 +148,9 @@ class _ProductFormWidgetState extends State<ProductFormWidget> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                widget.initialItem != null ? 'Editar producto' : 'Nuevo producto',
+                widget.initialItem != null
+                    ? 'Editar producto'
+                    : 'Nuevo producto',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
@@ -171,11 +181,14 @@ class _ProductFormWidgetState extends State<ProductFormWidget> {
                   labelText: 'Precio unitario',
                   border: OutlineInputBorder(),
                 ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) return 'Requerido';
                   final number = double.tryParse(value.trim());
-                  if (number == null || number <= 0) return 'Debe ser mayor que 0';
+                  if (number == null || number <= 0)
+                    return 'Debe ser mayor que 0';
                   return null;
                 },
               ),
@@ -199,7 +212,8 @@ class _ProductFormWidgetState extends State<ProductFormWidget> {
                     ),
                   ),
                 ],
-                onChanged: (selectedCategory) => setState(() => _selectedCategory = selectedCategory),
+                onChanged: (selectedCategory) =>
+                    setState(() => _selectedCategory = selectedCategory),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<ItbisRateEntity?>(
@@ -216,7 +230,8 @@ class _ProductFormWidgetState extends State<ProductFormWidget> {
                       ),
                     )
                     .toList(),
-                onChanged: (selectedRate) => setState(() => _selectedItbis = selectedRate),
+                onChanged: (selectedRate) =>
+                    setState(() => _selectedItbis = selectedRate),
               ),
               const SizedBox(height: 24),
               Row(
@@ -229,7 +244,9 @@ class _ProductFormWidgetState extends State<ProductFormWidget> {
                   const SizedBox(width: 8),
                   FilledButton(
                     onPressed: _submit,
-                    child: Text(widget.initialItem != null ? 'Guardar' : 'Crear'),
+                    child: Text(
+                      widget.initialItem != null ? 'Guardar' : 'Crear',
+                    ),
                   ),
                 ],
               ),

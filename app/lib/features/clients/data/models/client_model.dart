@@ -24,12 +24,12 @@ class ClientModel extends ClientEntity {
   }
 
   ClientEntity toEntity() => ClientEntity(
-        id: id,
-        name: name,
-        identifier: identifier,
-        taxId: taxId,
-        email: email,
-        phone: phone,
-        address: address,
-      );
+    id: id,
+    name: name,
+    identifier: identifier,
+    taxId: taxId,
+    email: email,
+    phone: phone,
+    address: address,
+  );
 }

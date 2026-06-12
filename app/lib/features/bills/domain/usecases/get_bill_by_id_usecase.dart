@@ -12,4 +12,3 @@ class GetBillByIdUseCase {
     return _repository.getBillById(id);
   }
 }
-

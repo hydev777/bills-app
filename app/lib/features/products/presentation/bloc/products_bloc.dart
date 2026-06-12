@@ -16,12 +16,12 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
     required GetItbisRatesUseCase getItbisRatesUseCase,
     required CreateItemUseCase createItemUseCase,
     required UpdateItemUseCase updateItemUseCase,
-  })  : _getItemsUseCase = getItemsUseCase,
-        _getCategoriesUseCase = getCategoriesUseCase,
-        _getItbisRatesUseCase = getItbisRatesUseCase,
-        _createItemUseCase = createItemUseCase,
-        _updateItemUseCase = updateItemUseCase,
-        super(const ProductsInitial()) {
+  }) : _getItemsUseCase = getItemsUseCase,
+       _getCategoriesUseCase = getCategoriesUseCase,
+       _getItbisRatesUseCase = getItbisRatesUseCase,
+       _createItemUseCase = createItemUseCase,
+       _updateItemUseCase = updateItemUseCase,
+       super(const ProductsInitial()) {
     on<ProductsLoaded>(_onProductsLoaded);
     on<ProductCreateRequested>(_onProductCreateRequested);
     on<ProductUpdateRequested>(_onProductUpdateRequested);
@@ -39,26 +39,32 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
   ) async {
     final current = state;
     if (current is ProductsLoadedState) {
-      emit(ProductsCreateLoading(
-        items: current.items,
-        total: current.total,
-        categories: current.categories,
-        itbisRates: current.itbisRates,
-      ));
+      emit(
+        ProductsCreateLoading(
+          items: current.items,
+          total: current.total,
+          categories: current.categories,
+          itbisRates: current.itbisRates,
+        ),
+      );
     } else if (current is ProductsCreateLoading) {
-      emit(ProductsCreateLoading(
-        items: current.items,
-        total: current.total,
-        categories: current.categories,
-        itbisRates: current.itbisRates,
-      ));
+      emit(
+        ProductsCreateLoading(
+          items: current.items,
+          total: current.total,
+          categories: current.categories,
+          itbisRates: current.itbisRates,
+        ),
+      );
     } else if (current is ProductsUpdateLoading) {
-      emit(ProductsCreateLoading(
-        items: current.items,
-        total: current.total,
-        categories: current.categories,
-        itbisRates: current.itbisRates,
-      ));
+      emit(
+        ProductsCreateLoading(
+          items: current.items,
+          total: current.total,
+          categories: current.categories,
+          itbisRates: current.itbisRates,
+        ),
+      );
     } else {
       emit(const ProductsLoading());
     }
@@ -71,7 +77,10 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
     final categories = categoriesResult.valueOrNull;
     final itbisRates = itbisResult.valueOrNull;
 
-    final failure = itemsResult.errorOrNull ?? categoriesResult.errorOrNull ?? itbisResult.errorOrNull;
+    final failure =
+        itemsResult.errorOrNull ??
+        categoriesResult.errorOrNull ??
+        itbisResult.errorOrNull;
     if (failure != null) {
       emit(ProductsError(failure.displayMessage));
       return;
@@ -81,12 +90,14 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
       return;
     }
 
-    emit(ProductsLoadedState(
-      items: items.items,
-      total: items.total,
-      categories: categories,
-      itbisRates: itbisRates,
-    ));
+    emit(
+      ProductsLoadedState(
+        items: items.items,
+        total: items.total,
+        categories: categories,
+        itbisRates: itbisRates,
+      ),
+    );
   }
 
   Future<void> _onProductCreateRequested(
@@ -94,19 +105,30 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
     Emitter<ProductsState> emit,
   ) async {
     final current = state;
-    if (current is! ProductsLoadedState && current is! ProductsCreateLoading) return;
+    if (current is! ProductsLoadedState && current is! ProductsCreateLoading)
+      return;
 
-    final items = current is ProductsLoadedState ? current.items : (current as ProductsCreateLoading).items;
-    final total = current is ProductsLoadedState ? current.total : (current as ProductsCreateLoading).total;
-    final categories = current is ProductsLoadedState ? current.categories : (current as ProductsCreateLoading).categories;
-    final itbisRates = current is ProductsLoadedState ? current.itbisRates : (current as ProductsCreateLoading).itbisRates;
+    final items = current is ProductsLoadedState
+        ? current.items
+        : (current as ProductsCreateLoading).items;
+    final total = current is ProductsLoadedState
+        ? current.total
+        : (current as ProductsCreateLoading).total;
+    final categories = current is ProductsLoadedState
+        ? current.categories
+        : (current as ProductsCreateLoading).categories;
+    final itbisRates = current is ProductsLoadedState
+        ? current.itbisRates
+        : (current as ProductsCreateLoading).itbisRates;
 
-    emit(ProductsCreateLoading(
-      items: items,
-      total: total,
-      categories: categories,
-      itbisRates: itbisRates,
-    ));
+    emit(
+      ProductsCreateLoading(
+        items: items,
+        total: total,
+        categories: categories,
+        itbisRates: itbisRates,
+      ),
+    );
 
     final result = await _createItemUseCase.call(
       name: event.name,
@@ -127,19 +149,30 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
     Emitter<ProductsState> emit,
   ) async {
     final current = state;
-    if (current is! ProductsLoadedState && current is! ProductsUpdateLoading) return;
+    if (current is! ProductsLoadedState && current is! ProductsUpdateLoading)
+      return;
 
-    final items = current is ProductsLoadedState ? current.items : (current as ProductsUpdateLoading).items;
-    final total = current is ProductsLoadedState ? current.total : (current as ProductsUpdateLoading).total;
-    final categories = current is ProductsLoadedState ? current.categories : (current as ProductsUpdateLoading).categories;
-    final itbisRates = current is ProductsLoadedState ? current.itbisRates : (current as ProductsUpdateLoading).itbisRates;
+    final items = current is ProductsLoadedState
+        ? current.items
+        : (current as ProductsUpdateLoading).items;
+    final total = current is ProductsLoadedState
+        ? current.total
+        : (current as ProductsUpdateLoading).total;
+    final categories = current is ProductsLoadedState
+        ? current.categories
+        : (current as ProductsUpdateLoading).categories;
+    final itbisRates = current is ProductsLoadedState
+        ? current.itbisRates
+        : (current as ProductsUpdateLoading).itbisRates;
 
-    emit(ProductsUpdateLoading(
-      items: items,
-      total: total,
-      categories: categories,
-      itbisRates: itbisRates,
-    ));
+    emit(
+      ProductsUpdateLoading(
+        items: items,
+        total: total,
+        categories: categories,
+        itbisRates: itbisRates,
+      ),
+    );
 
     final result = await _updateItemUseCase.call(
       event.id,

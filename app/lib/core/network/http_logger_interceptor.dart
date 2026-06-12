@@ -37,7 +37,9 @@ class HttpLoggerInterceptor extends Interceptor {
     }
     final buffer = StringBuffer();
     buffer.writeln('┌────────── HTTP RESPONSE ──────────');
-    buffer.writeln('│ ${response.requestOptions.method} ${response.requestOptions.uri}');
+    buffer.writeln(
+      '│ ${response.requestOptions.method} ${response.requestOptions.uri}',
+    );
     buffer.writeln('│ Status: ${response.statusCode}');
     buffer.writeln('│ Headers: ${response.headers.map}');
     buffer.writeln('│ Data: ${_bodyToString(response.data)}');
@@ -72,7 +74,8 @@ class HttpLoggerInterceptor extends Interceptor {
     if (data == null) return 'null';
     if (data is FormData) return '[FormData]';
     if (data is List<int>) return '[Binary ${data.length} bytes]';
-    if (data is String && data.length > 500) return 'String(${data.length} chars)';
+    if (data is String && data.length > 500)
+      return 'String(${data.length} chars)';
     return data.toString();
   }
 }

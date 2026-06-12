@@ -26,4 +26,41 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
     return LoginResponse.fromJson(data);
   }
+
+  @override
+  Future<bool> hasLocalUsers() async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/api/users/bootstrap-status',
+    );
+    final data = response.data;
+    if (data == null) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        message: 'Empty response',
+      );
+    }
+    return data['hasUsers'] as bool? ?? false;
+  }
+
+  @override
+  Future<LoginResponse> createInitialAdmin({
+    required String username,
+    required String email,
+    required String password,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/users/bootstrap-admin',
+      data: {'username': username, 'email': email, 'password': password},
+    );
+
+    final data = response.data;
+    if (data == null) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        message: 'Empty response',
+      );
+    }
+
+    return LoginResponse.fromJson(data);
+  }
 }

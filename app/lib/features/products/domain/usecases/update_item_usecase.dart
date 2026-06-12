@@ -15,13 +15,12 @@ class UpdateItemUseCase {
     double? unitPrice,
     int? categoryId,
     int? itbisRateId,
-  }) =>
-      _repository.updateItem(
-        id,
-        name: name,
-        description: description,
-        unitPrice: unitPrice,
-        categoryId: categoryId,
-        itbisRateId: itbisRateId,
-      );
+  }) => _repository.updateItem(
+    id,
+    name: name,
+    description: description,
+    unitPrice: unitPrice,
+    categoryId: categoryId,
+    itbisRateId: itbisRateId,
+  );
 }

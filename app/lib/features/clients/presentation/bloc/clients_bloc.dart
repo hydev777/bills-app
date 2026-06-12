@@ -12,10 +12,10 @@ class ClientsBloc extends Bloc<ClientsEvent, ClientsState> {
     required GetClientsUseCase getClientsUseCase,
     required CreateClientUseCase createClientUseCase,
     required UpdateClientUseCase updateClientUseCase,
-  })  : _getClientsUseCase = getClientsUseCase,
-        _createClientUseCase = createClientUseCase,
-        _updateClientUseCase = updateClientUseCase,
-        super(const ClientsInitial()) {
+  }) : _getClientsUseCase = getClientsUseCase,
+       _createClientUseCase = createClientUseCase,
+       _updateClientUseCase = updateClientUseCase,
+       super(const ClientsInitial()) {
     on<ClientsLoaded>(_onClientsLoaded);
     on<ClientCreated>(_onClientCreated);
     on<ClientUpdated>(_onClientUpdated);
@@ -34,12 +34,14 @@ class ClientsBloc extends Bloc<ClientsEvent, ClientsState> {
     final result = await _getClientsUseCase.call();
 
     result.fold(
-      onSuccess: (data) => emit(ClientsLoadedState(
-        clients: data.clients,
-        total: data.total,
-        limit: data.limit,
-        offset: data.offset,
-      )),
+      onSuccess: (data) => emit(
+        ClientsLoadedState(
+          clients: data.clients,
+          total: data.total,
+          limit: data.limit,
+          offset: data.offset,
+        ),
+      ),
       onFailure: (f) => emit(ClientsError(f.displayMessage)),
     );
   }

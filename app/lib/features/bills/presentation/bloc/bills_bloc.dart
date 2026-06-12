@@ -15,10 +15,10 @@ class BillsBloc extends Bloc<BillsEvent, BillsState> {
     required GetBillsUseCase getBillsUseCase,
     required GetBillByIdUseCase getBillByIdUseCase,
     required GetBillByPublicIdUseCase getBillByPublicIdUseCase,
-  })  : _getBillsUseCase = getBillsUseCase,
-        _getBillByIdUseCase = getBillByIdUseCase,
-        _getBillByPublicIdUseCase = getBillByPublicIdUseCase,
-        super(const BillsInitial()) {
+  }) : _getBillsUseCase = getBillsUseCase,
+       _getBillByIdUseCase = getBillByIdUseCase,
+       _getBillByPublicIdUseCase = getBillByPublicIdUseCase,
+       super(const BillsInitial()) {
     on<BillsLoaded>(_onBillsLoaded);
     on<BillSearchRequested>(_onBillSearchRequested);
   }
@@ -90,4 +90,3 @@ class BillsBloc extends Bloc<BillsEvent, BillsState> {
     );
   }
 }
-

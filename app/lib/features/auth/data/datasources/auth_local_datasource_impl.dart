@@ -25,6 +25,7 @@ class AuthLocalDataSourceImpl extends AuthLocalDataSource {
       'id': session.user.id,
       'username': session.user.username,
       'email': session.user.email,
+      'role': session.user.role,
     });
     await _storage.write(key: _keyUser, value: userJson);
     if (session.accessibleBranches.isEmpty &&
@@ -60,10 +61,16 @@ class AuthLocalDataSourceImpl extends AuthLocalDataSource {
     if (token == null || token.isEmpty || userJson == null) return null;
 
     final map = jsonDecode(userJson) as Map<String, dynamic>;
+    final role = map['role'] as String?;
+    if (role == null || role.isEmpty) {
+      await clearSession();
+      return null;
+    }
     final user = UserEntity(
       id: map['id'] as int,
       username: map['username'] as String,
       email: map['email'] as String,
+      role: role,
     );
 
     List<BranchEntity> branches = [];

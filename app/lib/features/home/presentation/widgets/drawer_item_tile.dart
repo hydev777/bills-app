@@ -45,8 +45,7 @@ class DrawerItemTile extends StatelessWidget {
                   child: Text(
                     label,
                     style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight:
-                          selected ? FontWeight.w600 : FontWeight.w500,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                       color: selected
                           ? colorScheme.onPrimaryContainer
                           : colorScheme.onSurface,

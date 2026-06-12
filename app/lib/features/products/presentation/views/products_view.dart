@@ -31,22 +31,25 @@ class _ProductsViewState extends State<ProductsView> {
       builder: (ctx) => ProductFormWidget(
         categories: state.categories,
         itbisRates: state.itbisRates,
-        onCreate: ({
-          required String name,
-          String? description,
-          required double unitPrice,
-          int? categoryId,
-          required int itbisRateId,
-        }) {
-          sl<ProductsBloc>().add(ProductCreateRequested(
-            name: name,
-            description: description,
-            unitPrice: unitPrice,
-            categoryId: categoryId,
-            itbisRateId: itbisRateId,
-          ));
-          Navigator.of(ctx).pop();
-        },
+        onCreate:
+            ({
+              required String name,
+              String? description,
+              required double unitPrice,
+              int? categoryId,
+              required int itbisRateId,
+            }) {
+              sl<ProductsBloc>().add(
+                ProductCreateRequested(
+                  name: name,
+                  description: description,
+                  unitPrice: unitPrice,
+                  categoryId: categoryId,
+                  itbisRateId: itbisRateId,
+                ),
+              );
+              Navigator.of(ctx).pop();
+            },
         onCancel: () => Navigator.of(ctx).pop(),
       ),
     );
@@ -54,9 +57,14 @@ class _ProductsViewState extends State<ProductsView> {
 
   void _openEditSheet(BuildContext context, ItemEntity item) {
     final state = context.read<ProductsBloc>().state;
-    if (state is! ProductsLoadedState && state is! ProductsUpdateLoading) return;
-    final categories = state is ProductsLoadedState ? state.categories : (state as ProductsUpdateLoading).categories;
-    final itbisRates = state is ProductsLoadedState ? state.itbisRates : (state as ProductsUpdateLoading).itbisRates;
+    if (state is! ProductsLoadedState && state is! ProductsUpdateLoading)
+      return;
+    final categories = state is ProductsLoadedState
+        ? state.categories
+        : (state as ProductsUpdateLoading).categories;
+    final itbisRates = state is ProductsLoadedState
+        ? state.itbisRates
+        : (state as ProductsUpdateLoading).itbisRates;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -64,24 +72,27 @@ class _ProductsViewState extends State<ProductsView> {
         initialItem: item,
         categories: categories,
         itbisRates: itbisRates,
-        onUpdate: ({
-          required int id,
-          required String name,
-          String? description,
-          required double unitPrice,
-          int? categoryId,
-          required int itbisRateId,
-        }) {
-          sl<ProductsBloc>().add(ProductUpdateRequested(
-            id: id,
-            name: name,
-            description: description,
-            unitPrice: unitPrice,
-            categoryId: categoryId,
-            itbisRateId: itbisRateId,
-          ));
-          Navigator.of(ctx).pop();
-        },
+        onUpdate:
+            ({
+              required int id,
+              required String name,
+              String? description,
+              required double unitPrice,
+              int? categoryId,
+              required int itbisRateId,
+            }) {
+              sl<ProductsBloc>().add(
+                ProductUpdateRequested(
+                  id: id,
+                  name: name,
+                  description: description,
+                  unitPrice: unitPrice,
+                  categoryId: categoryId,
+                  itbisRateId: itbisRateId,
+                ),
+              );
+              Navigator.of(ctx).pop();
+            },
         onCancel: () => Navigator.of(ctx).pop(),
       ),
     );
@@ -106,7 +117,8 @@ class _ProductsViewState extends State<ProductsView> {
                     context.read<ProductsBloc>().add(const ProductsLoaded()),
               );
             }
-            if (state is ProductsCreateLoading || state is ProductsUpdateLoading) {
+            if (state is ProductsCreateLoading ||
+                state is ProductsUpdateLoading) {
               return const Center(child: CircularProgressIndicator());
             }
             if (state is ProductsLoadedState) {

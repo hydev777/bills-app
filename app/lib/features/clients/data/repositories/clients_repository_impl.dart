@@ -31,12 +31,14 @@ class ClientsRepositoryImpl implements ClientsRepository {
       final total = data['total'] as int? ?? 0;
       final limitVal = data['limit'] as int? ?? limit;
       final offsetVal = data['offset'] as int? ?? offset;
-      return success(ClientsListResult(
-        clients: clients,
-        total: total,
-        limit: limitVal,
-        offset: offsetVal,
-      ));
+      return success(
+        ClientsListResult(
+          clients: clients,
+          total: total,
+          limit: limitVal,
+          offset: offsetVal,
+        ),
+      );
     } on DioException catch (e) {
       return failure(ServerFailure(message: _messageFromDio(e)));
     } catch (e) {
@@ -107,9 +109,7 @@ class ClientsRepositoryImpl implements ClientsRepository {
         );
       }
       if (status == 404) {
-        return failure(
-          ServerFailure(message: 'Cliente no encontrado'),
-        );
+        return failure(ServerFailure(message: 'Cliente no encontrado'));
       }
       return failure(ServerFailure(message: _messageFromDio(e)));
     } catch (e) {

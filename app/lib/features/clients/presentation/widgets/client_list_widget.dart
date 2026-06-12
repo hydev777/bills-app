@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:app/features/clients/domain/entities/client_entity.dart';
 
 class ClientListWidget extends StatelessWidget {
-  const ClientListWidget({
-    super.key,
-    required this.clients,
-    this.onClientTap,
-  });
+  const ClientListWidget({super.key, required this.clients, this.onClientTap});
 
   final List<ClientEntity> clients;
   final void Function(ClientEntity client)? onClientTap;
@@ -48,24 +44,21 @@ class ClientListWidget extends StatelessWidget {
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
           sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final client = clients[index];
-                final card = _ClientCard(client: client);
-                return Padding(
-                  key: ValueKey(client.id),
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: onClientTap != null
-                      ? InkWell(
-                          onTap: () => onClientTap!(client),
-                          borderRadius: BorderRadius.circular(16),
-                          child: card,
-                        )
-                      : card,
-                );
-              },
-              childCount: clients.length,
-            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final client = clients[index];
+              final card = _ClientCard(client: client);
+              return Padding(
+                key: ValueKey(client.id),
+                padding: const EdgeInsets.only(bottom: 12),
+                child: onClientTap != null
+                    ? InkWell(
+                        onTap: () => onClientTap!(client),
+                        borderRadius: BorderRadius.circular(16),
+                        child: card,
+                      )
+                    : card,
+              );
+            }, childCount: clients.length),
           ),
         ),
       ],
@@ -95,10 +88,7 @@ class _ClientEmptyState extends StatelessWidget {
         ),
         const Expanded(
           child: Center(
-            child: Padding(
-              padding: EdgeInsets.all(32),
-              child: _EmptyContent(),
-            ),
+            child: Padding(padding: EdgeInsets.all(32), child: _EmptyContent()),
           ),
         ),
       ],
@@ -162,7 +152,8 @@ class _ClientCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final subtitle = [
-      if (client.identifier != null && client.identifier!.isNotEmpty) client.identifier,
+      if (client.identifier != null && client.identifier!.isNotEmpty)
+        client.identifier,
       if (client.email != null && client.email!.isNotEmpty) client.email,
     ].where((e) => e != null && e.isNotEmpty).join(' · ');
 

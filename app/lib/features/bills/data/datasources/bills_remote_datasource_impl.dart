@@ -16,10 +16,7 @@ class BillsRemoteDataSourceImpl implements BillsRemoteDataSource {
     int limit = 50,
     int offset = 0,
   }) async {
-    final queryParams = <String, dynamic>{
-      'limit': limit,
-      'offset': offset,
-    };
+    final queryParams = <String, dynamic>{'limit': limit, 'offset': offset};
     if (status != null && status.isNotEmpty) {
       queryParams['status'] = status;
     }
@@ -59,8 +56,9 @@ class BillsRemoteDataSourceImpl implements BillsRemoteDataSource {
 
   @override
   Future<BillModel> getBillByPublicId(String publicId) async {
-    final response =
-        await _dio.get<Map<String, dynamic>>('/api/bills/public/$publicId');
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/api/bills/public/$publicId',
+    );
     final data = response.data;
     if (data == null) {
       throw DioException(
@@ -79,10 +77,7 @@ class BillsRemoteDataSourceImpl implements BillsRemoteDataSource {
     String status = 'paid',
     int? clientId,
   }) async {
-    final body = <String, dynamic>{
-      'title': title,
-      'status': status,
-    };
+    final body = <String, dynamic>{'title': title, 'status': status};
     if (description != null) {
       body['description'] = description;
     }
@@ -93,8 +88,10 @@ class BillsRemoteDataSourceImpl implements BillsRemoteDataSource {
       body['client_id'] = clientId;
     }
 
-    final response =
-        await _dio.post<Map<String, dynamic>>('/api/bills', data: body);
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/bills',
+      data: body,
+    );
     final data = response.data;
     if (data == null) {
       throw DioException(
@@ -123,4 +120,3 @@ class BillsRemoteDataSourceImpl implements BillsRemoteDataSource {
     }
   }
 }
-

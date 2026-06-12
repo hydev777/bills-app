@@ -55,5 +55,13 @@ final class ClientUpdated extends ClientsEvent {
   final String? address;
 
   @override
-  List<Object?> get props => [id, name, identifier, taxId, email, phone, address];
+  List<Object?> get props => [
+    id,
+    name,
+    identifier,
+    taxId,
+    email,
+    phone,
+    address,
+  ];
 }

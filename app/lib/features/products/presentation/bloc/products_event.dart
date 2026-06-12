@@ -29,7 +29,13 @@ final class ProductCreateRequested extends ProductsEvent {
   final int itbisRateId;
 
   @override
-  List<Object?> get props => [name, description, unitPrice, categoryId, itbisRateId];
+  List<Object?> get props => [
+    name,
+    description,
+    unitPrice,
+    categoryId,
+    itbisRateId,
+  ];
 }
 
 /// Submit edit product form.
@@ -51,5 +57,12 @@ final class ProductUpdateRequested extends ProductsEvent {
   final int itbisRateId;
 
   @override
-  List<Object?> get props => [id, name, description, unitPrice, categoryId, itbisRateId];
+  List<Object?> get props => [
+    id,
+    name,
+    description,
+    unitPrice,
+    categoryId,
+    itbisRateId,
+  ];
 }

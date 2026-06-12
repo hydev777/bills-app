@@ -40,4 +40,3 @@ class SaleLineEntity extends Equatable {
   @override
   List<Object?> get props => [item, quantity, unitPrice];
 }
-

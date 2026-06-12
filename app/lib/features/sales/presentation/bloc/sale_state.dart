@@ -35,7 +35,13 @@ class SaleSuccessSummary extends Equatable {
   final double change;
 
   @override
-  List<Object?> get props => [subtotal, taxAmount, totalAmount, cashGiven, change];
+  List<Object?> get props => [
+    subtotal,
+    taxAmount,
+    totalAmount,
+    cashGiven,
+    change,
+  ];
 }
 
 final class SaleLoaded extends SaleState {
@@ -102,19 +108,19 @@ final class SaleLoaded extends SaleState {
 
   @override
   List<Object?> get props => [
-        searchQuery,
-        searchResults,
-        cart,
-        subtotal,
-        taxAmount,
-        totalAmount,
-        cashGiven,
-        change,
-        isSearching,
-        isSubmitting,
-        errorMessage,
-        successSummaryToShow,
-      ];
+    searchQuery,
+    searchResults,
+    cart,
+    subtotal,
+    taxAmount,
+    totalAmount,
+    cashGiven,
+    change,
+    isSearching,
+    isSubmitting,
+    errorMessage,
+    successSummaryToShow,
+  ];
 }
 
 final class SaleError extends SaleState {
@@ -125,4 +131,3 @@ final class SaleError extends SaleState {
   @override
   List<Object?> get props => [message];
 }
-

@@ -1,10 +1,13 @@
 import 'package:app/core/constants/api_constants.dart';
+import 'package:app/features/auth/domain/entities/session.dart';
 import 'package:flutter/material.dart';
 
 import 'drawer_item_tile.dart';
 
 /// Menu entries for home navigation (sidebar and drawer).
-List<({IconData icon, String label, String path})> get homeMenuEntries {
+List<({IconData icon, String label, String path})> homeMenuEntries({
+  Session? session,
+}) {
   final entries = <({IconData icon, String label, String path})>[
     (icon: Icons.point_of_sale, label: 'Venta', path: '/home/venta'),
     (icon: Icons.receipt_long, label: 'Facturas', path: '/home/facturas'),
@@ -12,6 +15,14 @@ List<({IconData icon, String label, String path})> get homeMenuEntries {
     (icon: Icons.inventory_2, label: 'Productos', path: '/home/productos'),
     (icon: Icons.category, label: 'Categorias', path: '/home/categorias'),
   ];
+  if (ApiConstants.isLocal &&
+      session?.user.role.toLowerCase() == 'administrador') {
+    entries.add((
+      icon: Icons.manage_accounts,
+      label: 'Usuarios',
+      path: '/home/usuarios',
+    ));
+  }
   if (!ApiConstants.isLocal) {
     entries.add((
       icon: Icons.store,
@@ -34,11 +45,13 @@ class HomeMenuContent extends StatelessWidget {
     super.key,
     required this.onNavigate,
     required this.onLogout,
+    this.session,
     this.currentPath,
   });
 
   final void Function(String path) onNavigate;
   final VoidCallback onLogout;
+  final Session? session;
   final String? currentPath;
 
   @override
@@ -48,7 +61,7 @@ class HomeMenuContent extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ...homeMenuEntries.map(
+        ...homeMenuEntries(session: session).map(
           (entry) => DrawerItemTile(
             icon: entry.icon,
             label: entry.label,

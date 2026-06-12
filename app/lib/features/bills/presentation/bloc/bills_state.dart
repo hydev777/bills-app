@@ -44,4 +44,3 @@ final class BillsError extends BillsState {
   @override
   List<Object?> get props => [message];
 }
-

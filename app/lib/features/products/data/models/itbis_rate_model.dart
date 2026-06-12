@@ -22,9 +22,6 @@ class ItbisRateModel extends ItbisRateEntity {
     return double.tryParse(v.toString()) ?? 0;
   }
 
-  ItbisRateEntity toEntity() => ItbisRateEntity(
-        id: id,
-        name: name,
-        percentage: percentage,
-      );
+  ItbisRateEntity toEntity() =>
+      ItbisRateEntity(id: id, name: name, percentage: percentage);
 }

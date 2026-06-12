@@ -43,10 +43,7 @@ class SaleCartList extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        line.item.name,
-                        style: theme.textTheme.titleMedium,
-                      ),
+                      Text(line.item.name, style: theme.textTheme.titleMedium),
                       const SizedBox(height: 4),
                       Text(
                         'RD\$ ${line.unitPrice.toStringAsFixed(2)} c/u (sin ITBIS)',
@@ -65,24 +62,21 @@ class SaleCartList extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.remove_circle_outline),
                   onPressed: () => context.read<SaleBloc>().add(
-                        SaleProductQuantityChanged(
-                          itemId: line.item.id,
-                          quantity: line.quantity - 1,
-                        ),
-                      ),
+                    SaleProductQuantityChanged(
+                      itemId: line.item.id,
+                      quantity: line.quantity - 1,
+                    ),
+                  ),
                 ),
-                Text(
-                  '${line.quantity}',
-                  style: theme.textTheme.titleMedium,
-                ),
+                Text('${line.quantity}', style: theme.textTheme.titleMedium),
                 IconButton(
                   icon: const Icon(Icons.add_circle_outline),
                   onPressed: () => context.read<SaleBloc>().add(
-                        SaleProductQuantityChanged(
-                          itemId: line.item.id,
-                          quantity: line.quantity + 1,
-                        ),
-                      ),
+                    SaleProductQuantityChanged(
+                      itemId: line.item.id,
+                      quantity: line.quantity + 1,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -91,9 +85,9 @@ class SaleCartList extends StatelessWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
-                  onPressed: () => context
-                      .read<SaleBloc>()
-                      .add(SaleProductRemoved(line.item.id)),
+                  onPressed: () => context.read<SaleBloc>().add(
+                    SaleProductRemoved(line.item.id),
+                  ),
                 ),
               ],
             ),

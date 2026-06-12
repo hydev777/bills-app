@@ -20,7 +20,8 @@ class SaleTotalsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isValidSale = state.cart.isNotEmpty &&
+    final isValidSale =
+        state.cart.isNotEmpty &&
         state.cashGiven >= state.totalAmount &&
         !state.isSubmitting;
 
@@ -33,10 +34,7 @@ class SaleTotalsSection extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Subtotal',
-                style: theme.textTheme.bodyMedium,
-              ),
+              Text('Subtotal', style: theme.textTheme.bodyMedium),
               Text(
                 'RD\$ ${state.subtotal.toStringAsFixed(2)}',
                 style: theme.textTheme.titleMedium,
@@ -47,10 +45,7 @@ class SaleTotalsSection extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'ITBIS',
-                style: theme.textTheme.bodyMedium,
-              ),
+              Text('ITBIS', style: theme.textTheme.bodyMedium),
               Text(
                 'RD\$ ${state.taxAmount.toStringAsFixed(2)}',
                 style: theme.textTheme.titleMedium,
@@ -61,10 +56,7 @@ class SaleTotalsSection extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Total a pagar',
-                style: theme.textTheme.bodyMedium,
-              ),
+              Text('Total a pagar', style: theme.textTheme.bodyMedium),
               Text(
                 'RD\$ ${state.totalAmount.toStringAsFixed(2)}',
                 style: theme.textTheme.titleLarge,
@@ -77,20 +69,17 @@ class SaleTotalsSection extends StatelessWidget {
               Expanded(
                 child: TextField(
                   controller: cashGivenController,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(
                     labelText: 'Efectivo recibido',
                     border: OutlineInputBorder(),
                   ),
                   onChanged: (value) {
-                    final parsed = double.tryParse(
-                          value.replaceAll(',', '.'),
-                        ) ??
-                        0;
-                    context
-                        .read<SaleBloc>()
-                        .add(SaleCashGivenChanged(parsed));
+                    final parsed =
+                        double.tryParse(value.replaceAll(',', '.')) ?? 0;
+                    context.read<SaleBloc>().add(SaleCashGivenChanged(parsed));
                   },
                 ),
               ),
@@ -98,10 +87,7 @@ class SaleTotalsSection extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    'Cambio',
-                    style: theme.textTheme.bodyMedium,
-                  ),
+                  Text('Cambio', style: theme.textTheme.bodyMedium),
                   Text(
                     'RD\$ ${state.change <= 0 ? '0.00' : state.change.toStringAsFixed(2)}',
                     style: theme.textTheme.titleMedium,
@@ -116,9 +102,7 @@ class SaleTotalsSection extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: isValidSale ? onSubmitSale : null,
               icon: const Icon(Icons.point_of_sale_rounded),
-              label: Text(
-                state.isSubmitting ? 'Facturando' : 'Facturar',
-              ),
+              label: Text(state.isSubmitting ? 'Facturando' : 'Facturar'),
             ),
           ),
         ],

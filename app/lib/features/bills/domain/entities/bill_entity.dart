@@ -31,18 +31,17 @@ class BillEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        publicId,
-        title,
-        description,
-        status,
-        amount,
-        createdAt,
-        clientId,
-        clientName,
-        clientIdentifier,
-        userId,
-        userName,
-      ];
+    id,
+    publicId,
+    title,
+    description,
+    status,
+    amount,
+    createdAt,
+    clientId,
+    clientName,
+    clientIdentifier,
+    userId,
+    userName,
+  ];
 }
-

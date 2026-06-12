@@ -5,6 +5,7 @@ class UserModel extends UserEntity {
     required super.id,
     required super.username,
     required super.email,
+    required super.role,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -12,14 +13,17 @@ class UserModel extends UserEntity {
       id: json['id'] as int,
       username: json['username'] as String,
       email: json['email'] as String,
+      role: json['role'] as String? ?? 'user',
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'username': username,
-        'email': email,
-      };
+    'id': id,
+    'username': username,
+    'email': email,
+    'role': role,
+  };
 
-  UserEntity toEntity() => UserEntity(id: id, username: username, email: email);
+  UserEntity toEntity() =>
+      UserEntity(id: id, username: username, email: email, role: role);
 }

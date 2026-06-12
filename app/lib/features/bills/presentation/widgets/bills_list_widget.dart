@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:app/features/bills/domain/entities/bill_entity.dart';
 
 class BillsListWidget extends StatelessWidget {
-  const BillsListWidget({
-    super.key,
-    required this.bills,
-  });
+  const BillsListWidget({super.key, required this.bills});
 
   final List<BillEntity> bills;
 
@@ -46,17 +43,14 @@ class BillsListWidget extends StatelessWidget {
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
           sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final bill = bills[index];
-                return Padding(
-                  key: ValueKey(bill.id),
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _BillCard(bill: bill),
-                );
-              },
-              childCount: bills.length,
-            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final bill = bills[index];
+              return Padding(
+                key: ValueKey(bill.id),
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _BillCard(bill: bill),
+              );
+            }, childCount: bills.length),
           ),
         ),
       ],
@@ -95,15 +89,17 @@ class _BillsEmptyState extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest
-                          .withValues(alpha: 0.6),
+                      color: colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.6,
+                      ),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.receipt_long_rounded,
                       size: 64,
-                      color: colorScheme.onSurfaceVariant
-                          .withValues(alpha: 0.7),
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.7,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -224,4 +220,3 @@ class _BillCard extends StatelessWidget {
     );
   }
 }
-

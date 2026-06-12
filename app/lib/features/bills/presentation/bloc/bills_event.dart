@@ -36,4 +36,3 @@ final class BillSearchRequested extends BillsEvent {
   @override
   List<Object?> get props => [query];
 }
-

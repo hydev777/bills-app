@@ -14,12 +14,11 @@ class CreateItemUseCase {
     required double unitPrice,
     int? categoryId,
     required int itbisRateId,
-  }) =>
-      _repository.createItem(
-        name: name,
-        description: description,
-        unitPrice: unitPrice,
-        categoryId: categoryId,
-        itbisRateId: itbisRateId,
-      );
+  }) => _repository.createItem(
+    name: name,
+    description: description,
+    unitPrice: unitPrice,
+    categoryId: categoryId,
+    itbisRateId: itbisRateId,
+  );
 }

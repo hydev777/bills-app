@@ -64,9 +64,7 @@ class BillsRepositoryImpl implements BillsRepository {
         );
       }
       if (status == 404) {
-        return failure(
-          const ServerFailure(message: 'Factura no encontrada'),
-        );
+        return failure(const ServerFailure(message: 'Factura no encontrada'));
       }
       return failure(ServerFailure(message: _messageFromDio(e)));
     } catch (e) {
@@ -75,9 +73,7 @@ class BillsRepositoryImpl implements BillsRepository {
   }
 
   @override
-  Future<Result<BillEntity, Failure>> getBillByPublicId(
-    String publicId,
-  ) async {
+  Future<Result<BillEntity, Failure>> getBillByPublicId(String publicId) async {
     try {
       final model = await _remote.getBillByPublicId(publicId);
       return success<BillEntity, Failure>(model.toEntity());
@@ -89,9 +85,7 @@ class BillsRepositoryImpl implements BillsRepository {
         );
       }
       if (status == 404) {
-        return failure(
-          const ServerFailure(message: 'Factura no encontrada'),
-        );
+        return failure(const ServerFailure(message: 'Factura no encontrada'));
       }
       return failure(ServerFailure(message: _messageFromDio(e)));
     } catch (e) {
@@ -165,4 +159,3 @@ class BillsRepositoryImpl implements BillsRepository {
     return 'Error de conexión';
   }
 }
-

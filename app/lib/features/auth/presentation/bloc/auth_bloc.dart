@@ -1,6 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:app/core/constants/api_constants.dart';
+import 'package:app/features/auth/domain/usecases/create_initial_admin_usecase.dart';
 import 'package:app/features/auth/domain/usecases/get_session_usecase.dart';
+import 'package:app/features/auth/domain/usecases/has_local_users_usecase.dart';
 import 'package:app/features/auth/domain/usecases/login_usecase.dart';
 import 'package:app/features/auth/domain/usecases/logout_usecase.dart';
 
@@ -12,18 +15,25 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required LoginUseCase loginUseCase,
     required LogoutUseCase logoutUseCase,
     required GetSessionUseCase getSessionUseCase,
-  })  : _loginUseCase = loginUseCase,
-        _logoutUseCase = logoutUseCase,
-        _getSessionUseCase = getSessionUseCase,
-        super(const AuthInitial()) {
+    required HasLocalUsersUseCase hasLocalUsersUseCase,
+    required CreateInitialAdminUseCase createInitialAdminUseCase,
+  }) : _loginUseCase = loginUseCase,
+       _logoutUseCase = logoutUseCase,
+       _getSessionUseCase = getSessionUseCase,
+       _hasLocalUsersUseCase = hasLocalUsersUseCase,
+       _createInitialAdminUseCase = createInitialAdminUseCase,
+       super(const AuthInitial()) {
     on<AuthLoginRequested>(_onLoginRequested);
     on<AuthLogoutRequested>(_onLogoutRequested);
     on<AuthSessionRequested>(_onSessionRequested);
+    on<AuthInitialAdminCreateRequested>(_onInitialAdminCreateRequested);
   }
 
   final LoginUseCase _loginUseCase;
   final LogoutUseCase _logoutUseCase;
   final GetSessionUseCase _getSessionUseCase;
+  final HasLocalUsersUseCase _hasLocalUsersUseCase;
+  final CreateInitialAdminUseCase _createInitialAdminUseCase;
 
   Future<void> _onLoginRequested(
     AuthLoginRequested event,
@@ -52,8 +62,38 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final session = await _getSessionUseCase.call();
     if (session != null) {
       emit(AuthAuthenticated(session));
-    } else {
-      emit(const AuthUnauthenticated());
+      return;
     }
+    if (!ApiConstants.isLocal) {
+      emit(const AuthUnauthenticated());
+      return;
+    }
+    final result = await _hasLocalUsersUseCase.call();
+    result.fold(
+      onSuccess: (hasUsers) {
+        if (hasUsers) {
+          emit(const AuthUnauthenticated());
+        } else {
+          emit(const AuthBootstrapRequired());
+        }
+      },
+      onFailure: (f) => emit(AuthError(f.displayMessage)),
+    );
+  }
+
+  Future<void> _onInitialAdminCreateRequested(
+    AuthInitialAdminCreateRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+    final result = await _createInitialAdminUseCase.call(
+      username: event.username,
+      email: event.email,
+      password: event.password,
+    );
+    result.fold(
+      onSuccess: (session) => emit(AuthAuthenticated(session)),
+      onFailure: (f) => emit(AuthBootstrapRequired(message: f.displayMessage)),
+    );
   }
 }

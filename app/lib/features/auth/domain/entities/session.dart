@@ -17,5 +17,10 @@ class Session extends Equatable {
   final int? selectedBranchId;
 
   @override
-  List<Object?> get props => [token, user, accessibleBranches, selectedBranchId];
+  List<Object?> get props => [
+    token,
+    user,
+    accessibleBranches,
+    selectedBranchId,
+  ];
 }

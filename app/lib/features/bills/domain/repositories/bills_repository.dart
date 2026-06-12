@@ -41,4 +41,3 @@ class BillsListResult {
   final int limit;
   final int offset;
 }
-

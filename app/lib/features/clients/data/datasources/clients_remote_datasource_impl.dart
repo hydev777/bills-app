@@ -13,10 +13,7 @@ class ClientsRemoteDataSourceImpl implements ClientsRemoteDataSource {
     int limit = 50,
     int offset = 0,
   }) async {
-    final queryParams = <String, dynamic>{
-      'limit': limit,
-      'offset': offset,
-    };
+    final queryParams = <String, dynamic>{'limit': limit, 'offset': offset};
     if (search != null && search.isNotEmpty) queryParams['search'] = search;
 
     final response = await _dio.get<Map<String, dynamic>>(

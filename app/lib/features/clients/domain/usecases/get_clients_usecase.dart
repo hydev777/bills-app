@@ -11,10 +11,5 @@ class GetClientsUseCase {
     String? search,
     int limit = 50,
     int offset = 0,
-  }) =>
-      _repository.getClients(
-        search: search,
-        limit: limit,
-        offset: offset,
-      );
+  }) => _repository.getClients(search: search, limit: limit, offset: offset);
 }

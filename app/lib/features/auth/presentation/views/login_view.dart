@@ -6,6 +6,7 @@ import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:app/features/auth/presentation/bloc/auth_event.dart';
 import 'package:app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:app/features/auth/presentation/widgets/login_form.dart';
+import 'package:app/features/auth/presentation/widgets/local_admin_setup_form.dart';
 import 'package:app/injection.dart';
 
 class LoginView extends StatelessWidget {
@@ -26,8 +27,7 @@ class LoginView extends StatelessWidget {
                   listener: (context, state) {
                     // Router redirect navigates to /home on AuthAuthenticated
                   },
-                  buildWhen: (previous, current) =>
-                      previous.runtimeType != current.runtimeType,
+                  buildWhen: (previous, current) => previous != current,
                   builder: (context, state) {
                     if (state is AuthLoading) {
                       return const _LoginLoading();
@@ -70,6 +70,9 @@ class _LoginContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bootstrapState = state is AuthBootstrapRequired
+        ? state as AuthBootstrapRequired
+        : null;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -81,18 +84,19 @@ class _LoginContent extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Inicie sesion para continuar',
+          state is AuthBootstrapRequired
+              ? 'Cree el primer administrador local'
+              : 'Inicie sesion para continuar',
           style: theme.textTheme.bodyLarge?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 32),
-        if (ApiConstants.isLocal) ...[
-          const _LocalModeCredentials(),
-          const SizedBox(height: 24),
-        ],
-        const LoginForm(),
+        if (state is AuthBootstrapRequired)
+          const LocalAdminSetupForm()
+        else
+          const LoginForm(),
         if (state is AuthError) ...[
           const SizedBox(height: 16),
           Text(
@@ -101,97 +105,15 @@ class _LoginContent extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
         ],
-      ],
-    );
-  }
-}
-
-class _LocalModeCredentials extends StatelessWidget {
-  const _LocalModeCredentials();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: const Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Modo local',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-            SizedBox(height: 8),
-            Text('Credenciales de prueba'),
-            SizedBox(height: 12),
-            _CredentialRow(
-              label: 'Admin',
-              email: 'admin@bills.local',
-              password: 'Password123',
-            ),
-            SizedBox(height: 8),
-            _CredentialRow(
-              label: 'Cajero',
-              email: 'cajero@bills.local',
-              password: 'Password123',
-            ),
-            SizedBox(height: 8),
-            _CredentialRow(
-              label: 'Vendedor',
-              email: 'vendedor@bills.local',
-              password: 'Password123',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CredentialRow extends StatelessWidget {
-  const _CredentialRow({
-    required this.label,
-    required this.email,
-    required this.password,
-  });
-
-  final String label;
-  final String email;
-  final String password;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return DefaultTextStyle(
-      style: theme.textTheme.bodyMedium ?? const TextStyle(),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 76,
-            child: Text(
-              label,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(email),
-                Text(password),
-              ],
-            ),
+        if (bootstrapState?.message != null) ...[
+          const SizedBox(height: 16),
+          Text(
+            bootstrapState!.message!,
+            style: TextStyle(color: theme.colorScheme.error),
+            textAlign: TextAlign.center,
           ),
         ],
-      ),
+      ],
     );
   }
 }

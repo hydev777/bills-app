@@ -18,16 +18,19 @@ sealed class Result<T, E> extends Equatable {
   R fold<R>({
     required R Function(T value) onSuccess,
     required R Function(E error) onFailure,
-  }) =>
-      when(success: onSuccess, failure: onFailure);
+  }) => when(success: onSuccess, failure: onFailure);
 
   bool get isSuccess => this is Success<T, E>;
   bool get isFailure => this is Err<T, E>;
 
-  T? get valueOrNull =>
-      switch (this) { Success<T, E>(:final value) => value, _ => null };
-  E? get errorOrNull =>
-      switch (this) { Err<T, E>(:final error) => error, _ => null };
+  T? get valueOrNull => switch (this) {
+    Success<T, E>(:final value) => value,
+    _ => null,
+  };
+  E? get errorOrNull => switch (this) {
+    Err<T, E>(:final error) => error,
+    _ => null,
+  };
 }
 
 final class Success<T, E> extends Result<T, E> {

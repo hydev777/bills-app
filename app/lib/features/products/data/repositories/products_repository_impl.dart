@@ -34,12 +34,14 @@ class ProductsRepositoryImpl implements ProductsRepository {
       final total = data['total'] as int? ?? 0;
       final limitVal = data['limit'] as int? ?? limit;
       final offsetVal = data['offset'] as int? ?? offset;
-      return success(ItemsListResult(
-        items: items,
-        total: total,
-        limit: limitVal,
-        offset: offsetVal,
-      ));
+      return success(
+        ItemsListResult(
+          items: items,
+          total: total,
+          limit: limitVal,
+          offset: offsetVal,
+        ),
+      );
     } on DioException catch (e) {
       return failure(ServerFailure(message: _messageFromDio(e)));
     } catch (e) {
@@ -57,7 +59,9 @@ class ProductsRepositoryImpl implements ProductsRepository {
       categoryId: json['categoryId'] as int?,
       itbisRateId: json['itbisRateId'] as int,
       itbisRateName: itbisRate?['name'] as String?,
-      itbisPercentage: itbisRate != null ? _toDouble(itbisRate['percentage']) : null,
+      itbisPercentage: itbisRate != null
+          ? _toDouble(itbisRate['percentage'])
+          : null,
     );
   }
 

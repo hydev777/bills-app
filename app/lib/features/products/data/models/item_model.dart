@@ -23,7 +23,9 @@ class ItemModel extends ItemEntity {
       categoryId: json['categoryId'] as int?,
       itbisRateId: json['itbisRateId'] as int,
       itbisRateName: itbisRate?['name'] as String?,
-      itbisPercentage: itbisRate != null ? _toDouble(itbisRate['percentage']) : null,
+      itbisPercentage: itbisRate != null
+          ? _toDouble(itbisRate['percentage'])
+          : null,
     );
   }
 
@@ -35,14 +37,14 @@ class ItemModel extends ItemEntity {
   }
 
   ItemEntity toEntity() => ItemEntity(
-        id: id,
-        name: name,
-        description: description,
-        unitPrice: unitPrice,
-        categoryId: categoryId,
-        itbisRateId: itbisRateId,
-        categoryName: categoryName,
-        itbisRateName: itbisRateName,
-        itbisPercentage: itbisPercentage,
-      );
+    id: id,
+    name: name,
+    description: description,
+    unitPrice: unitPrice,
+    categoryId: categoryId,
+    itbisRateId: itbisRateId,
+    categoryName: categoryName,
+    itbisRateName: itbisRateName,
+    itbisPercentage: itbisPercentage,
+  );
 }

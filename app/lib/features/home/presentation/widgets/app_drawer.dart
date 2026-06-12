@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:app/features/auth/presentation/bloc/auth_event.dart';
+import 'package:app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:app/injection.dart';
 
 import 'home_menu_entries.dart';
@@ -12,26 +13,26 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final session = switch (sl<AuthBloc>().state) {
+      AuthAuthenticated(:final session) => session,
+      _ => null,
+    };
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
           const DrawerHeader(
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-            ),
+            decoration: BoxDecoration(color: Colors.transparent),
             child: Align(
               alignment: Alignment.bottomLeft,
               child: Text(
                 homeMenuTitle,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ),
           ),
           HomeMenuContent(
+            session: session,
             currentPath: GoRouterState.of(context).uri.path,
             onNavigate: (path) {
               Navigator.of(context).pop();

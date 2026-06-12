@@ -16,9 +16,9 @@ class SaleBloc extends Bloc<SaleEvent, SaleState> {
   SaleBloc({
     required GetItemsUseCase getItemsUseCase,
     required CreateSaleBillUseCase createSaleBillUseCase,
-  })  : _getItemsUseCase = getItemsUseCase,
-        _createSaleBillUseCase = createSaleBillUseCase,
-        super(const SaleInitial()) {
+  }) : _getItemsUseCase = getItemsUseCase,
+       _createSaleBillUseCase = createSaleBillUseCase,
+       super(const SaleInitial()) {
     on<SaleInitialized>(_onInitialized);
     on<SaleSearchQueryChanged>(_onSearchQueryChanged);
     on<SaleProductAdded>(_onProductAdded);
@@ -242,11 +242,7 @@ class SaleBloc extends Bloc<SaleEvent, SaleState> {
       return;
     }
     if (current.cashGiven < current.totalAmount) {
-      emit(
-        current.copyWith(
-          errorMessage: 'El efectivo es menor que el total',
-        ),
-      );
+      emit(current.copyWith(errorMessage: 'El efectivo es menor que el total'));
       return;
     }
 
@@ -283,27 +279,18 @@ class SaleBloc extends Bloc<SaleEvent, SaleState> {
       },
       failure: (Failure f) async {
         emit(
-          current.copyWith(
-            isSubmitting: false,
-            errorMessage: f.displayMessage,
-          ),
+          current.copyWith(isSubmitting: false, errorMessage: f.displayMessage),
         );
       },
     );
   }
 
   double _calculateSubtotal(List<SaleLineEntity> cart) {
-    return cart.fold<double>(
-      0.0,
-      (sum, line) => sum + line.lineSubtotal,
-    );
+    return cart.fold<double>(0.0, (sum, line) => sum + line.lineSubtotal);
   }
 
   double _calculateTax(List<SaleLineEntity> cart) {
-    return cart.fold<double>(
-      0.0,
-      (sum, line) => sum + line.lineTax,
-    );
+    return cart.fold<double>(0.0, (sum, line) => sum + line.lineTax);
   }
 
   double _calculateTotal(double subtotal, double taxAmount) {
@@ -325,4 +312,3 @@ class SaleBloc extends Bloc<SaleEvent, SaleState> {
     }
   }
 }
-

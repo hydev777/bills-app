@@ -24,3 +24,18 @@ final class AuthLogoutRequested extends AuthEvent {
 final class AuthSessionRequested extends AuthEvent {
   const AuthSessionRequested();
 }
+
+final class AuthInitialAdminCreateRequested extends AuthEvent {
+  const AuthInitialAdminCreateRequested({
+    required this.username,
+    required this.email,
+    required this.password,
+  });
+
+  final String username;
+  final String email;
+  final String password;
+
+  @override
+  List<Object?> get props => [username, email, password];
+}

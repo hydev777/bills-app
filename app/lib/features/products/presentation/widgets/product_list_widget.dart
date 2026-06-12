@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:app/features/products/domain/entities/item_entity.dart';
 
 class ProductListWidget extends StatelessWidget {
-  const ProductListWidget({
-    super.key,
-    required this.items,
-    this.onProductTap,
-  });
+  const ProductListWidget({super.key, required this.items, this.onProductTap});
 
   final List<ItemEntity> items;
   final void Function(ItemEntity item)? onProductTap;
@@ -48,17 +44,19 @@ class ProductListWidget extends StatelessWidget {
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
           sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final item = items[index];
-                return Padding(
-                  key: ValueKey(item.id),
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _ProductCard(item: item, onTap: onProductTap != null ? () => onProductTap!(item) : null),
-                );
-              },
-              childCount: items.length,
-            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final item = items[index];
+              return Padding(
+                key: ValueKey(item.id),
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _ProductCard(
+                  item: item,
+                  onTap: onProductTap != null
+                      ? () => onProductTap!(item)
+                      : null,
+                ),
+              );
+            }, childCount: items.length),
           ),
         ),
       ],
@@ -88,10 +86,7 @@ class _ProductEmptyState extends StatelessWidget {
         ),
         const Expanded(
           child: Center(
-            child: Padding(
-              padding: EdgeInsets.all(32),
-              child: _EmptyContent(),
-            ),
+            child: Padding(padding: EdgeInsets.all(32), child: _EmptyContent()),
           ),
         ),
       ],
@@ -195,7 +190,8 @@ class _ProductCard extends StatelessWidget {
                         color: colorScheme.onSurface,
                       ),
                     ),
-                    if (item.description != null && item.description!.isNotEmpty) ...[
+                    if (item.description != null &&
+                        item.description!.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
                         item.description!,

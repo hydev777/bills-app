@@ -11,8 +11,8 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
     required AuthRemoteDataSource remote,
     required AuthLocalDataSource local,
-  })  : _remote = remote,
-        _local = local;
+  }) : _remote = remote,
+       _local = local;
 
   final AuthRemoteDataSource _remote;
   final AuthLocalDataSource _local;
@@ -21,14 +21,7 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Result<Session, Failure>> login(String email, String password) async {
     try {
       final response = await _remote.login(email, password);
-      final branches = response.accessibleBranches.map((b) => b.toEntity()).toList();
-      final selectedBranchId = _selectDefaultBranch(response.accessibleBranches);
-      final session = Session(
-        token: response.token,
-        user: response.user.toEntity(),
-        accessibleBranches: branches,
-        selectedBranchId: selectedBranchId,
-      );
+      final session = _sessionFromLoginResponse(response);
       await _local.saveSession(session);
       return success(session);
     } on DioException catch (e) {
@@ -43,6 +36,40 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Result<bool, Failure>> hasLocalUsers() async {
+    try {
+      final hasUsers = await _remote.hasLocalUsers();
+      return success(hasUsers);
+    } on DioException catch (e) {
+      return failure(ServerFailure(message: _messageFromDioException(e)));
+    } catch (e) {
+      return failure(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Session, Failure>> createInitialAdmin({
+    required String username,
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final response = await _remote.createInitialAdmin(
+        username: username,
+        email: email,
+        password: password,
+      );
+      final session = _sessionFromLoginResponse(response);
+      await _local.saveSession(session);
+      return success(session);
+    } on DioException catch (e) {
+      return failure(ServerFailure(message: _messageFromDioException(e)));
+    } catch (e) {
+      return failure(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
   Future<void> logout() async {
     await _local.clearSession();
   }
@@ -50,6 +77,19 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Session?> getSession() async {
     return _local.getSession();
+  }
+
+  Session _sessionFromLoginResponse(response) {
+    final branches = response.accessibleBranches
+        .map((b) => b.toEntity())
+        .toList();
+    final selectedBranchId = _selectDefaultBranch(response.accessibleBranches);
+    return Session(
+      token: response.token,
+      user: response.user.toEntity(),
+      accessibleBranches: branches,
+      selectedBranchId: selectedBranchId,
+    );
   }
 
   int? _selectDefaultBranch(List<BranchModel> branches) {

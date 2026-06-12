@@ -15,9 +15,7 @@ class ClientsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Clientes'),
-      ),
+      appBar: AppBar(title: const Text('Clientes')),
       body: BlocBuilder<ClientsBloc, ClientsState>(
         buildWhen: (previous, current) => previous != current,
         builder: (context, state) {
@@ -58,26 +56,27 @@ class ClientsView extends StatelessWidget {
       isScrollControlled: true,
       builder: (ctx) {
         return ClientFormBottomSheet(
-          onCreate: ({
-            required String name,
-            String? identifier,
-            String? taxId,
-            String? email,
-            String? phone,
-            String? address,
-          }) {
-            bloc.add(
-              ClientCreated(
-                name: name,
-                identifier: identifier,
-                taxId: taxId,
-                email: email,
-                phone: phone,
-                address: address,
-              ),
-            );
-            Navigator.of(ctx).pop();
-          },
+          onCreate:
+              ({
+                required String name,
+                String? identifier,
+                String? taxId,
+                String? email,
+                String? phone,
+                String? address,
+              }) {
+                bloc.add(
+                  ClientCreated(
+                    name: name,
+                    identifier: identifier,
+                    taxId: taxId,
+                    email: email,
+                    phone: phone,
+                    address: address,
+                  ),
+                );
+                Navigator.of(ctx).pop();
+              },
           onCancel: () => Navigator.of(ctx).pop(),
         );
       },
@@ -95,28 +94,29 @@ class ClientsView extends StatelessWidget {
       builder: (ctx) {
         return ClientFormBottomSheet(
           initialClient: client,
-          onUpdate: ({
-            required int id,
-            required String name,
-            String? identifier,
-            String? taxId,
-            String? email,
-            String? phone,
-            String? address,
-          }) {
-            bloc.add(
-              ClientUpdated(
-                id: id,
-                name: name,
-                identifier: identifier,
-                taxId: taxId,
-                email: email,
-                phone: phone,
-                address: address,
-              ),
-            );
-            Navigator.of(ctx).pop();
-          },
+          onUpdate:
+              ({
+                required int id,
+                required String name,
+                String? identifier,
+                String? taxId,
+                String? email,
+                String? phone,
+                String? address,
+              }) {
+                bloc.add(
+                  ClientUpdated(
+                    id: id,
+                    name: name,
+                    identifier: identifier,
+                    taxId: taxId,
+                    email: email,
+                    phone: phone,
+                    address: address,
+                  ),
+                );
+                Navigator.of(ctx).pop();
+              },
           onCancel: () => Navigator.of(ctx).pop(),
         );
       },

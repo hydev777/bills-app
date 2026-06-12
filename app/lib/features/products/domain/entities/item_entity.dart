@@ -24,6 +24,12 @@ class ItemEntity extends Equatable {
   final double? itbisPercentage;
 
   @override
-  List<Object?> get props =>
-      [id, name, description, unitPrice, categoryId, itbisRateId];
+  List<Object?> get props => [
+    id,
+    name,
+    description,
+    unitPrice,
+    categoryId,
+    itbisRateId,
+  ];
 }

@@ -30,6 +30,15 @@ final class AuthUnauthenticated extends AuthState {
   const AuthUnauthenticated();
 }
 
+final class AuthBootstrapRequired extends AuthState {
+  const AuthBootstrapRequired({this.message});
+
+  final String? message;
+
+  @override
+  List<Object?> get props => [message];
+}
+
 final class AuthError extends AuthState {
   const AuthError(this.message);
 

@@ -12,4 +12,3 @@ class GetBillByPublicIdUseCase {
     return _repository.getBillByPublicId(publicId);
   }
 }
-

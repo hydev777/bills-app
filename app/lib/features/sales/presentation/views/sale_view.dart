@@ -41,13 +41,10 @@ class _SaleViewState extends State<SaleView> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Venta'),
-      ),
+      appBar: AppBar(title: const Text('Venta')),
       body: BlocListener<SaleBloc, SaleState>(
         listenWhen: (previous, current) =>
-            current is SaleLoaded &&
-            current.successSummaryToShow != null,
+            current is SaleLoaded && current.successSummaryToShow != null,
         listener: (context, state) {
           final loaded = state as SaleLoaded;
           final summary = loaded.successSummaryToShow!;
@@ -66,9 +63,9 @@ class _SaleViewState extends State<SaleView> {
                 actions: [
                   TextButton(
                     onPressed: () {
-                      context
-                          .read<SaleBloc>()
-                          .add(const SaleSuccessDialogDismissed());
+                      context.read<SaleBloc>().add(
+                        const SaleSuccessDialogDismissed(),
+                      );
                       Navigator.of(ctx).pop();
                     },
                     child: const Text('Cerrar'),
@@ -101,9 +98,7 @@ class _SaleViewState extends State<SaleView> {
               return const Center(child: CircularProgressIndicator());
             }
             if (state is SaleError) {
-              return Center(
-                child: Text(state.message),
-              );
+              return Center(child: Text(state.message));
             }
             final loaded = state as SaleLoaded;
 
@@ -123,9 +118,9 @@ class _SaleViewState extends State<SaleView> {
                             prefixIcon: Icon(Icons.search),
                             border: OutlineInputBorder(),
                           ),
-                          onChanged: (value) => context
-                              .read<SaleBloc>()
-                              .add(SaleSearchQueryChanged(value)),
+                          onChanged: (value) => context.read<SaleBloc>().add(
+                            SaleSearchQueryChanged(value),
+                          ),
                         ),
                       ),
                       if (loaded.errorMessage != null)
@@ -145,9 +140,7 @@ class _SaleViewState extends State<SaleView> {
                           ),
                         ),
                       const SizedBox(height: 4),
-                      Expanded(
-                        child: SaleSearchResults(state: loaded),
-                      ),
+                      Expanded(child: SaleSearchResults(state: loaded)),
                     ],
                   ),
                 ),
@@ -157,8 +150,9 @@ class _SaleViewState extends State<SaleView> {
                     color: theme.colorScheme.surfaceContainerLowest,
                     border: Border(
                       left: BorderSide(
-                        color: theme
-                            .colorScheme.outlineVariant.withOpacity(0.4),
+                        color: theme.colorScheme.outlineVariant.withOpacity(
+                          0.4,
+                        ),
                       ),
                     ),
                   ),
@@ -175,9 +169,7 @@ class _SaleViewState extends State<SaleView> {
                         ),
                       ),
                       const Divider(height: 1),
-                      Expanded(
-                        child: SaleCartList(state: loaded),
-                      ),
+                      Expanded(child: SaleCartList(state: loaded)),
                       const Divider(height: 1),
                       SaleTotalsSection(
                         state: loaded,

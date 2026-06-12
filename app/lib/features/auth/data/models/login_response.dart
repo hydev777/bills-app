@@ -14,7 +14,8 @@ class LoginResponse {
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
     final branchesList = json['accessibleBranches'] as List<dynamic>?;
-    final branches = branchesList
+    final branches =
+        branchesList
             ?.map((e) => BranchModel.fromJson(e as Map<String, dynamic>))
             .toList() ??
         [];

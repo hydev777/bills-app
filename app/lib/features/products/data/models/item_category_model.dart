@@ -15,9 +15,6 @@ class ItemCategoryModel extends ItemCategoryEntity {
     );
   }
 
-  ItemCategoryEntity toEntity() => ItemCategoryEntity(
-        id: id,
-        name: name,
-        description: description,
-      );
+  ItemCategoryEntity toEntity() =>
+      ItemCategoryEntity(id: id, name: name, description: description);
 }
