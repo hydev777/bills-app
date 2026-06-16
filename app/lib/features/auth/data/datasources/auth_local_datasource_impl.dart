@@ -73,15 +73,15 @@ class AuthLocalDataSourceImpl extends AuthLocalDataSource {
       role: role,
     );
 
-    List<BranchEntity> branches = [];
+    List<BranchEntity> branches = const <BranchEntity>[];
     final branchesStr = await _storage.read(key: _keyBranches);
     if (branchesStr != null && branchesStr.isNotEmpty) {
       final list = jsonDecode(branchesStr) as List<dynamic>;
       branches = list
-          .map(
+          .map<BranchEntity>(
             (e) => BranchModel.fromJson(e as Map<String, dynamic>).toEntity(),
           )
-          .toList();
+          .toList(growable: false);
     }
 
     int? selectedBranchId;

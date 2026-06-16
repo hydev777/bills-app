@@ -5,7 +5,7 @@ class LoginResponse {
   const LoginResponse({
     required this.token,
     required this.user,
-    this.accessibleBranches = const [],
+    this.accessibleBranches = const <BranchModel>[],
   });
 
   final String token;
@@ -17,8 +17,8 @@ class LoginResponse {
     final branches =
         branchesList
             ?.map((e) => BranchModel.fromJson(e as Map<String, dynamic>))
-            .toList() ??
-        [];
+            .toList(growable: false) ??
+        const <BranchModel>[];
     return LoginResponse(
       token: json['token'] as String,
       user: UserModel.fromJson(json['user'] as Map<String, dynamic>),

@@ -55,17 +55,11 @@ class UsersView extends StatelessWidget {
         onCreate:
             ({
               required String username,
-              required String email,
               required String password,
               required String role,
             }) {
               bloc.add(
-                UserCreated(
-                  username: username,
-                  email: email,
-                  password: password,
-                  role: role,
-                ),
+                UserCreated(username: username, password: password, role: role),
               );
               Navigator.of(ctx).pop();
             },
@@ -88,7 +82,6 @@ class UsersView extends StatelessWidget {
             ({
               required int id,
               required String username,
-              required String email,
               String? password,
               required String role,
             }) {
@@ -96,7 +89,6 @@ class UsersView extends StatelessWidget {
                 UserUpdated(
                   id: id,
                   username: username,
-                  email: email,
                   password: password,
                   role: role,
                 ),

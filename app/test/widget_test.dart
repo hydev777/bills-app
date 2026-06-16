@@ -22,14 +22,16 @@ class _FakeAuthRepository implements AuthRepository {
   Future<Result<bool, Failure>> hasLocalUsers() async => success(true);
 
   @override
-  Future<Result<Session, Failure>> login(String email, String password) async {
+  Future<Result<Session, Failure>> login(
+    String identifier,
+    String password,
+  ) async {
     throw UnimplementedError();
   }
 
   @override
   Future<Result<Session, Failure>> createInitialAdmin({
     required String username,
-    required String email,
     required String password,
   }) async {
     throw UnimplementedError();

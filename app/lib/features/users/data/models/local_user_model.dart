@@ -4,7 +4,6 @@ class LocalUserModel extends LocalUserEntity {
   const LocalUserModel({
     required super.id,
     required super.username,
-    required super.email,
     required super.role,
   });
 
@@ -12,7 +11,6 @@ class LocalUserModel extends LocalUserEntity {
     return LocalUserModel(
       id: json['id'] as int,
       username: json['username'] as String,
-      email: json['email'] as String,
       role: json['role'] as String? ?? 'user',
     );
   }

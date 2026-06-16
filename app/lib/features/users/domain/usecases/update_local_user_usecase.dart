@@ -11,14 +11,12 @@ class UpdateLocalUserUseCase {
   Future<Result<LocalUserEntity, Failure>> call({
     required int id,
     required String username,
-    required String email,
     String? password,
     required String role,
   }) {
     return _repository.updateUser(
       id: id,
       username: username,
-      email: email,
       password: password,
       role: role,
     );

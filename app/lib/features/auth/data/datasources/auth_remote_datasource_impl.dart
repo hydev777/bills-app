@@ -15,16 +15,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       ApiConstants.loginPath,
       data: {'email': email, 'password': password},
     );
+    return _responseToLogin(response);
+  }
 
-    final data = response.data;
-    if (data == null) {
-      throw DioException(
-        requestOptions: response.requestOptions,
-        message: 'Empty response',
-      );
-    }
-
-    return LoginResponse.fromJson(data);
+  @override
+  Future<LoginResponse> loginLocal(String username, String password) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      ApiConstants.loginPath,
+      data: {'username': username, 'password': password},
+    );
+    return _responseToLogin(response);
   }
 
   @override
@@ -45,14 +45,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<LoginResponse> createInitialAdmin({
     required String username,
-    required String email,
     required String password,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/api/users/bootstrap-admin',
-      data: {'username': username, 'email': email, 'password': password},
+      data: {'username': username, 'password': password},
     );
+    return _responseToLogin(response);
+  }
 
+  LoginResponse _responseToLogin(Response<Map<String, dynamic>> response) {
     final data = response.data;
     if (data == null) {
       throw DioException(
@@ -60,7 +62,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         message: 'Empty response',
       );
     }
-
     return LoginResponse.fromJson(data);
   }
 }

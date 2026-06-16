@@ -6,14 +6,12 @@ abstract class LocalUsersRepository {
   Future<Result<List<LocalUserEntity>, Failure>> getUsers();
   Future<Result<LocalUserEntity, Failure>> createUser({
     required String username,
-    required String email,
     required String password,
     required String role,
   });
   Future<Result<LocalUserEntity, Failure>> updateUser({
     required int id,
     required String username,
-    required String email,
     String? password,
     required String role,
   });

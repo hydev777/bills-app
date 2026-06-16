@@ -50,12 +50,9 @@ Future<Response> _bootstrapAdmin(
 ) async {
   final body = await jsonBody(request);
   final username = (body['username'] as String?)?.trim();
-  final email = (body['email'] as String?)?.trim();
   final password = body['password'] as String?;
   if (username == null ||
       username.isEmpty ||
-      email == null ||
-      email.isEmpty ||
       password == null ||
       password.length < 8) {
     throw const HttpError(400, 'Validation error');
@@ -64,7 +61,8 @@ Future<Response> _bootstrapAdmin(
     if (_userCount(db) > 0) {
       throw const HttpError(409, 'Bootstrap admin already exists');
     }
-    _ensureUniqueUser(db, username: username, email: email);
+    _ensureUniqueUsername(db, username: username);
+    final email = _generateCompatibilityEmail(db);
     db.execute(
       '''
 INSERT INTO users (username, email, password_hash, role)
@@ -90,13 +88,15 @@ VALUES (?, ?, ?, ?)
 
 Future<Response> _login(Request request, LocalApiContext context) async {
   final body = await jsonBody(request);
-  final email = (body['email'] as String?)?.trim();
+  final username = (body['username'] as String?)?.trim();
   final password = body['password'] as String?;
-  if (email == null || email.isEmpty || password == null) {
+  if (username == null || username.isEmpty || password == null) {
     throw const HttpError(400, 'Validation error');
   }
   final rows = context.database.read(
-    (db) => db.select('SELECT * FROM users WHERE email = ?', [email]),
+    (db) => db.select('SELECT * FROM users WHERE lower(username) = lower(?)', [
+      username,
+    ]),
   );
   if (rows.isEmpty ||
       !context.auth.verifyPassword(
@@ -138,13 +138,10 @@ Future<Response> _createUser(Request request, LocalApiContext context) async {
   context.requirePrivilege(claims.userId, claims.role, 'user', 'create');
   final body = await jsonBody(request);
   final username = (body['username'] as String?)?.trim();
-  final email = (body['email'] as String?)?.trim();
   final password = body['password'] as String?;
   final role = (body['role'] as String?)?.trim() ?? 'user';
   if (username == null ||
       username.isEmpty ||
-      email == null ||
-      email.isEmpty ||
       password == null ||
       password.length < 8 ||
       !_isSupportedRole(role)) {
@@ -152,7 +149,8 @@ Future<Response> _createUser(Request request, LocalApiContext context) async {
   }
 
   final user = await context.database.transaction((db) {
-    _ensureUniqueUser(db, username: username, email: email);
+    _ensureUniqueUsername(db, username: username);
+    final email = _generateCompatibilityEmail(db);
     db.execute(
       '''
 INSERT INTO users (username, email, password_hash, role)
@@ -185,15 +183,10 @@ Future<Response> _updateUser(Request request, LocalApiContext context) async {
     final nextUsername = body.containsKey('username')
         ? (body['username'] as String).trim()
         : existing['username'] as String;
-    final nextEmail = body.containsKey('email')
-        ? (body['email'] as String).trim()
-        : existing['email'] as String;
     final nextRole = body.containsKey('role')
         ? (body['role'] as String).trim()
         : (existing['role'] as String? ?? 'user');
-    if (nextUsername.isEmpty ||
-        nextEmail.isEmpty ||
-        !_isSupportedRole(nextRole)) {
+    if (nextUsername.isEmpty || !_isSupportedRole(nextRole)) {
       throw const HttpError(400, 'Validation error');
     }
     if ((existing['role'] as String? ?? 'user').toLowerCase() ==
@@ -202,15 +195,10 @@ Future<Response> _updateUser(Request request, LocalApiContext context) async {
         _adminCount(db) <= 1) {
       throw const HttpError(400, 'At least one admin is required');
     }
-    _ensureUniqueUser(
-      db,
-      username: nextUsername,
-      email: nextEmail,
-      excludeUserId: id,
-    );
+    _ensureUniqueUsername(db, username: nextUsername, excludeUserId: id);
 
-    final fields = <String>['username = ?', 'email = ?', 'role = ?'];
-    final args = <Object?>[nextUsername, nextEmail, nextRole];
+    final fields = <String>['username = ?', 'role = ?'];
+    final args = <Object?>[nextUsername, nextRole];
     if (body.containsKey('password')) {
       final password = body['password'] as String?;
       if (password == null || password.isEmpty || password.length < 8) {
@@ -252,10 +240,9 @@ Future<Response> _deleteUser(Request request, LocalApiContext context) async {
   return jsonResponse({'message': 'User deleted'});
 }
 
-void _ensureUniqueUser(
+void _ensureUniqueUsername(
   Database db, {
   required String username,
-  required String email,
   int? excludeUserId,
 }) {
   final usernameRows = excludeUserId == null
@@ -269,14 +256,13 @@ void _ensureUniqueUser(
   if (usernameRows.isNotEmpty) {
     throw const HttpError(400, 'Username already exists');
   }
-  final emailRows = excludeUserId == null
-      ? db.select('SELECT id FROM users WHERE lower(email) = lower(?)', [email])
-      : db.select(
-          'SELECT id FROM users WHERE lower(email) = lower(?) AND id != ?',
-          [email, excludeUserId],
-        );
-  if (emailRows.isNotEmpty) {
-    throw const HttpError(400, 'Email already exists');
+}
+
+String _generateCompatibilityEmail(Database db) {
+  while (true) {
+    final email = 'local-user-${uuidValue()}@local.internal';
+    final rows = db.select('SELECT id FROM users WHERE email = ?', [email]);
+    if (rows.isEmpty) return email;
   }
 }
 

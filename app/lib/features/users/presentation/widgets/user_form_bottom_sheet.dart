@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:app/core/utils/validation.dart';
 import 'package:app/features/users/domain/entities/local_user_entity.dart';
 
 class UserFormBottomSheet extends StatefulWidget {
@@ -15,7 +14,6 @@ class UserFormBottomSheet extends StatefulWidget {
   final LocalUserEntity? initialUser;
   final void Function({
     required String username,
-    required String email,
     required String password,
     required String role,
   })?
@@ -23,7 +21,6 @@ class UserFormBottomSheet extends StatefulWidget {
   final void Function({
     required int id,
     required String username,
-    required String email,
     String? password,
     required String role,
   })?
@@ -37,7 +34,6 @@ class UserFormBottomSheet extends StatefulWidget {
 class _UserFormBottomSheetState extends State<UserFormBottomSheet> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
-  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   String _role = 'user';
@@ -52,7 +48,6 @@ class _UserFormBottomSheetState extends State<UserFormBottomSheet> {
     final user = widget.initialUser;
     if (user != null) {
       _usernameController.text = user.username;
-      _emailController.text = user.email;
       _role = user.role;
     }
   }
@@ -60,7 +55,6 @@ class _UserFormBottomSheetState extends State<UserFormBottomSheet> {
   @override
   void dispose() {
     _usernameController.dispose();
-    _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -73,7 +67,6 @@ class _UserFormBottomSheetState extends State<UserFormBottomSheet> {
       widget.onUpdate!(
         id: widget.initialUser!.id,
         username: _usernameController.text.trim(),
-        email: _emailController.text.trim(),
         password: password.isEmpty ? null : password,
         role: _role,
       );
@@ -82,7 +75,6 @@ class _UserFormBottomSheetState extends State<UserFormBottomSheet> {
     if (widget.onCreate != null) {
       widget.onCreate!(
         username: _usernameController.text.trim(),
-        email: _emailController.text.trim(),
         password: password,
         role: _role,
       );
@@ -124,21 +116,6 @@ class _UserFormBottomSheetState extends State<UserFormBottomSheet> {
                 },
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Correo electronico',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  final text = value?.trim() ?? '';
-                  if (text.isEmpty) return 'El correo es obligatorio';
-                  if (!isValidEmail(text)) return 'Ingrese un correo valido';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: _role,
                 decoration: const InputDecoration(
@@ -176,8 +153,9 @@ class _UserFormBottomSheetState extends State<UserFormBottomSheet> {
                 ),
                 validator: (value) {
                   final text = value ?? '';
-                  if (!_isEditing && text.isEmpty)
+                  if (!_isEditing && text.isEmpty) {
                     return 'La contrasena es obligatoria';
+                  }
                   if (text.isNotEmpty && text.length < 8) {
                     return 'Minimo 8 caracteres';
                   }

@@ -10,13 +10,11 @@ class CreateLocalUserUseCase {
 
   Future<Result<LocalUserEntity, Failure>> call({
     required String username,
-    required String email,
     required String password,
     required String role,
   }) {
     return _repository.createUser(
       username: username,
-      email: email,
       password: password,
       role: role,
     );

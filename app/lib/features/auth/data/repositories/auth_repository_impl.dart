@@ -1,6 +1,9 @@
 import 'package:app/core/errors/failures.dart';
 import 'package:app/core/errors/result.dart';
+import 'package:app/core/constants/api_constants.dart';
 import 'package:app/features/auth/data/models/branch_model.dart';
+import 'package:app/features/auth/data/models/login_response.dart';
+import 'package:app/features/auth/domain/entities/branch_entity.dart';
 import 'package:app/features/auth/domain/entities/session.dart';
 import 'package:app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:app/features/auth/data/datasources/auth_local_datasource.dart';
@@ -18,9 +21,14 @@ class AuthRepositoryImpl implements AuthRepository {
   final AuthLocalDataSource _local;
 
   @override
-  Future<Result<Session, Failure>> login(String email, String password) async {
+  Future<Result<Session, Failure>> login(
+    String identifier,
+    String password,
+  ) async {
     try {
-      final response = await _remote.login(email, password);
+      final response = ApiConstants.isLocal
+          ? await _remote.loginLocal(identifier, password)
+          : await _remote.login(identifier, password);
       final session = _sessionFromLoginResponse(response);
       await _local.saveSession(session);
       return success(session);
@@ -50,13 +58,11 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Result<Session, Failure>> createInitialAdmin({
     required String username,
-    required String email,
     required String password,
   }) async {
     try {
       final response = await _remote.createInitialAdmin(
         username: username,
-        email: email,
         password: password,
       );
       final session = _sessionFromLoginResponse(response);
@@ -79,10 +85,10 @@ class AuthRepositoryImpl implements AuthRepository {
     return _local.getSession();
   }
 
-  Session _sessionFromLoginResponse(response) {
+  Session _sessionFromLoginResponse(LoginResponse response) {
     final branches = response.accessibleBranches
-        .map((b) => b.toEntity())
-        .toList();
+        .map<BranchEntity>((b) => b.toEntity())
+        .toList(growable: false);
     final selectedBranchId = _selectDefaultBranch(response.accessibleBranches);
     return Session(
       token: response.token,

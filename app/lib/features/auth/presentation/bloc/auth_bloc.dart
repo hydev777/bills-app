@@ -40,7 +40,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(const AuthLoading());
-    final result = await _loginUseCase.call(event.email, event.password);
+    final result = await _loginUseCase.call(event.identifier, event.password);
     result.fold(
       onSuccess: (session) => emit(AuthAuthenticated(session)),
       onFailure: (f) => emit(AuthError(f.displayMessage)),
@@ -88,7 +88,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const AuthLoading());
     final result = await _createInitialAdminUseCase.call(
       username: event.username,
-      email: event.email,
       password: event.password,
     );
     result.fold(

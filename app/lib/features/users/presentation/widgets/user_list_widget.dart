@@ -32,8 +32,7 @@ class UserListWidget extends StatelessWidget {
               child: Text(user.username.characters.first.toUpperCase()),
             ),
             title: Text(user.username),
-            subtitle: Text('${user.email}\n${_roleLabel(user.role)}'),
-            isThreeLine: true,
+            subtitle: Text(_roleLabel(user.role)),
             trailing: IconButton(
               icon: const Icon(Icons.delete_outline),
               onPressed: () => onDeleteTap(user),

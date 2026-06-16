@@ -26,18 +26,12 @@ class LocalUsersRemoteDataSourceImpl implements LocalUsersRemoteDataSource {
   @override
   Future<LocalUserModel> createUser({
     required String username,
-    required String email,
     required String password,
     required String role,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/api/users',
-      data: {
-        'username': username,
-        'email': email,
-        'password': password,
-        'role': role,
-      },
+      data: {'username': username, 'password': password, 'role': role},
     );
     final data = response.data;
     if (data == null) {
@@ -53,15 +47,10 @@ class LocalUsersRemoteDataSourceImpl implements LocalUsersRemoteDataSource {
   Future<LocalUserModel> updateUser({
     required int id,
     required String username,
-    required String email,
     String? password,
     required String role,
   }) async {
-    final body = <String, dynamic>{
-      'username': username,
-      'email': email,
-      'role': role,
-    };
+    final body = <String, dynamic>{'username': username, 'role': role};
     if (password != null && password.isNotEmpty) {
       body['password'] = password;
     }

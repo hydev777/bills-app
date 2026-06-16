@@ -10,12 +10,10 @@ class CreateInitialAdminUseCase {
 
   Future<Result<Session, Failure>> call({
     required String username,
-    required String email,
     required String password,
   }) {
     return _repository.createInitialAdmin(
       username: username,
-      email: email,
       password: password,
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:app/core/constants/api_constants.dart';
 import 'package:app/core/utils/validation.dart';
 import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:app/features/auth/presentation/bloc/auth_event.dart';
@@ -14,13 +15,13 @@ class LoginForm extends StatefulWidget {
 
 class _LoginFormState extends State<LoginForm> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -29,7 +30,7 @@ class _LoginFormState extends State<LoginForm> {
     if (!_formKey.currentState!.validate()) return;
     context.read<AuthBloc>().add(
       AuthLoginRequested(
-        email: _emailController.text.trim(),
+        identifier: _identifierController.text.trim(),
         password: _passwordController.text,
       ),
     );
@@ -37,26 +38,32 @@ class _LoginFormState extends State<LoginForm> {
 
   @override
   Widget build(BuildContext context) {
+    final isLocal = ApiConstants.isLocal;
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TextFormField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
+            controller: _identifierController,
+            keyboardType: isLocal
+                ? TextInputType.text
+                : TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-              labelText: 'Correo electrónico',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.email_outlined),
+            decoration: InputDecoration(
+              labelText: isLocal ? 'Usuario' : 'Correo electronico',
+              border: const OutlineInputBorder(),
+              prefixIcon: Icon(
+                isLocal ? Icons.person_outline : Icons.email_outlined,
+              ),
             ),
             validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Ingrese su correo';
+              final text = value?.trim() ?? '';
+              if (text.isEmpty) {
+                return isLocal ? 'Ingrese su usuario' : 'Ingrese su correo';
               }
-              if (!isValidEmail(value.trim())) {
-                return 'Ingrese un correo válido';
+              if (!isLocal && !isValidEmail(text)) {
+                return 'Ingrese un correo valido';
               }
               return null;
             },
@@ -68,7 +75,7 @@ class _LoginFormState extends State<LoginForm> {
             textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) => _submit(),
             decoration: InputDecoration(
-              labelText: 'Contraseña',
+              labelText: 'Contrasena',
               border: const OutlineInputBorder(),
               prefixIcon: const Icon(Icons.lock_outline),
               suffixIcon: IconButton(
@@ -81,7 +88,7 @@ class _LoginFormState extends State<LoginForm> {
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Ingrese su contraseña';
+                return 'Ingrese su contrasena';
               }
               return null;
             },
@@ -91,7 +98,7 @@ class _LoginFormState extends State<LoginForm> {
             onPressed: _submit,
             child: const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text('Iniciar sesión'),
+              child: Text('Iniciar sesion'),
             ),
           ),
         ],

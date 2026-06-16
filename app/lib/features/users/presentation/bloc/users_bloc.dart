@@ -60,7 +60,6 @@ class UsersBloc extends Bloc<UsersEvent, UsersState> {
   ) async {
     final result = await _createLocalUserUseCase.call(
       username: event.username,
-      email: event.email,
       password: event.password,
       role: event.role,
     );
@@ -77,7 +76,6 @@ class UsersBloc extends Bloc<UsersEvent, UsersState> {
     final result = await _updateLocalUserUseCase.call(
       id: event.id,
       username: event.username,
-      email: event.email,
       password: event.password,
       role: event.role,
     );

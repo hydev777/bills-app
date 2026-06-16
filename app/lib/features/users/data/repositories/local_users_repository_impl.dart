@@ -33,14 +33,12 @@ class LocalUsersRepositoryImpl implements LocalUsersRepository {
   @override
   Future<Result<LocalUserEntity, Failure>> createUser({
     required String username,
-    required String email,
     required String password,
     required String role,
   }) async {
     try {
       final user = await _remote.createUser(
         username: username,
-        email: email,
         password: password,
         role: role,
       );
@@ -56,7 +54,6 @@ class LocalUsersRepositoryImpl implements LocalUsersRepository {
   Future<Result<LocalUserEntity, Failure>> updateUser({
     required int id,
     required String username,
-    required String email,
     String? password,
     required String role,
   }) async {
@@ -64,7 +61,6 @@ class LocalUsersRepositoryImpl implements LocalUsersRepository {
       final user = await _remote.updateUser(
         id: id,
         username: username,
-        email: email,
         password: password,
         role: role,
       );
@@ -100,7 +96,7 @@ class LocalUsersRepositoryImpl implements LocalUsersRepository {
         user: UserEntity(
           id: updatedUser.id,
           username: updatedUser.username,
-          email: updatedUser.email,
+          email: session.user.email,
           role: updatedUser.role,
         ),
         accessibleBranches: session.accessibleBranches,

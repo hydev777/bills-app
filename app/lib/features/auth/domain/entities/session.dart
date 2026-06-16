@@ -7,7 +7,7 @@ class Session extends Equatable {
   const Session({
     required this.token,
     required this.user,
-    this.accessibleBranches = const [],
+    this.accessibleBranches = const <BranchEntity>[],
     this.selectedBranchId,
   });
 

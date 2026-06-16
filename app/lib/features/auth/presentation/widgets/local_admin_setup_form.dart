@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:app/core/utils/validation.dart';
 import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:app/features/auth/presentation/bloc/auth_event.dart';
 
@@ -15,7 +14,6 @@ class LocalAdminSetupForm extends StatefulWidget {
 class _LocalAdminSetupFormState extends State<LocalAdminSetupForm> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
-  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
@@ -24,7 +22,6 @@ class _LocalAdminSetupFormState extends State<LocalAdminSetupForm> {
   @override
   void dispose() {
     _usernameController.dispose();
-    _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -35,7 +32,6 @@ class _LocalAdminSetupFormState extends State<LocalAdminSetupForm> {
     context.read<AuthBloc>().add(
       AuthInitialAdminCreateRequested(
         username: _usernameController.text.trim(),
-        email: _emailController.text.trim(),
         password: _passwordController.text,
       ),
     );
@@ -65,23 +61,6 @@ class _LocalAdminSetupFormState extends State<LocalAdminSetupForm> {
           ),
           const SizedBox(height: 16),
           TextFormField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-              labelText: 'Correo electronico',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.email_outlined),
-            ),
-            validator: (value) {
-              final text = value?.trim() ?? '';
-              if (text.isEmpty) return 'Ingrese un correo';
-              if (!isValidEmail(text)) return 'Ingrese un correo valido';
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
             controller: _passwordController,
             obscureText: _obscurePassword,
             textInputAction: TextInputAction.next,
@@ -98,8 +77,9 @@ class _LocalAdminSetupFormState extends State<LocalAdminSetupForm> {
               ),
             ),
             validator: (value) {
-              if (value == null || value.isEmpty)
+              if (value == null || value.isEmpty) {
                 return 'Ingrese una contrasena';
+              }
               if (value.length < 8) return 'Minimo 8 caracteres';
               return null;
             },
