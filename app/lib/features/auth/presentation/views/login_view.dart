@@ -9,13 +9,26 @@ import 'package:app/features/auth/presentation/widgets/login_form.dart';
 import 'package:app/features/auth/presentation/widgets/local_admin_setup_form.dart';
 import 'package:app/injection.dart';
 
-class LoginView extends StatelessWidget {
+class LoginView extends StatefulWidget {
   const LoginView({super.key});
 
   @override
+  State<LoginView> createState() => _LoginViewState();
+}
+
+class _LoginViewState extends State<LoginView> {
+  late final AuthBloc _authBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _authBloc = sl<AuthBloc>()..add(const AuthSessionRequested());
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider<AuthBloc>(
-      create: (_) => sl<AuthBloc>()..add(const AuthSessionRequested()),
+    return BlocProvider<AuthBloc>.value(
+      value: _authBloc,
       child: Scaffold(
         body: SafeArea(
           child: Center(
