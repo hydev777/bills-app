@@ -1,9 +1,9 @@
-import 'package:app/features/users/data/datasources/local_users_remote_datasource.dart';
+﻿import 'package:app/features/users/data/datasources/users_local_api_datasource.dart';
 import 'package:app/features/users/data/models/local_user_model.dart';
 import 'package:dio/dio.dart';
 
-class LocalUsersRemoteDataSourceImpl implements LocalUsersRemoteDataSource {
-  LocalUsersRemoteDataSourceImpl(this._dio);
+class UsersLocalApiDataSourceImpl implements UsersLocalApiDataSource {
+  UsersLocalApiDataSourceImpl(this._dio);
 
   final Dio _dio;
 

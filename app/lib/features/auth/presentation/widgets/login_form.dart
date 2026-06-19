@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:app/core/constants/api_constants.dart';
-import 'package:app/core/utils/validation.dart';
 import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:app/features/auth/presentation/bloc/auth_event.dart';
 
@@ -38,7 +36,6 @@ class _LoginFormState extends State<LoginForm> {
 
   @override
   Widget build(BuildContext context) {
-    final isLocal = ApiConstants.isLocal;
     return Form(
       key: _formKey,
       child: Column(
@@ -46,24 +43,17 @@ class _LoginFormState extends State<LoginForm> {
         children: [
           TextFormField(
             controller: _identifierController,
-            keyboardType: isLocal
-                ? TextInputType.text
-                : TextInputType.emailAddress,
+            keyboardType: TextInputType.text,
             textInputAction: TextInputAction.next,
-            decoration: InputDecoration(
-              labelText: isLocal ? 'Usuario' : 'Correo electronico',
-              border: const OutlineInputBorder(),
-              prefixIcon: Icon(
-                isLocal ? Icons.person_outline : Icons.email_outlined,
-              ),
+            decoration: const InputDecoration(
+              labelText: 'Usuario',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.person_outline),
             ),
             validator: (value) {
               final text = value?.trim() ?? '';
               if (text.isEmpty) {
-                return isLocal ? 'Ingrese su usuario' : 'Ingrese su correo';
-              }
-              if (!isLocal && !isValidEmail(text)) {
-                return 'Ingrese un correo valido';
+                return 'Ingrese su usuario';
               }
               return null;
             },

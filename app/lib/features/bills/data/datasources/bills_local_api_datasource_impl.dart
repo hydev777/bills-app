@@ -1,10 +1,10 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 
-import 'bills_remote_datasource.dart';
+import 'bills_local_api_datasource.dart';
 import 'package:app/features/bills/data/models/bill_model.dart';
 
-class BillsRemoteDataSourceImpl implements BillsRemoteDataSource {
-  BillsRemoteDataSourceImpl(this._dio);
+class BillsLocalApiDataSourceImpl implements BillsLocalApiDataSource {
+  BillsLocalApiDataSourceImpl(this._dio);
 
   final Dio _dio;
 

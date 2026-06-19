@@ -1,7 +1,7 @@
-import 'package:app/features/bills/data/models/bill_model.dart';
+﻿import 'package:app/features/bills/data/models/bill_model.dart';
 
-abstract class BillsRemoteDataSource {
-  /// GET /api/bills - List bills (branch-scoped).
+abstract class BillsLocalApiDataSource {
+  /// GET /api/bills - List bills.
   /// Optional query: status, user_id, client_id, limit, offset.
   Future<Map<String, dynamic>> getBills({
     String? status,

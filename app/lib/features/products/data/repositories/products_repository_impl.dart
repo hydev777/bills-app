@@ -1,16 +1,16 @@
-import 'package:app/core/errors/failures.dart';
+﻿import 'package:app/core/errors/failures.dart';
 import 'package:app/core/errors/result.dart';
 import 'package:app/features/products/domain/entities/item_category_entity.dart';
 import 'package:app/features/products/domain/entities/item_entity.dart';
 import 'package:app/features/products/domain/entities/itbis_rate_entity.dart';
 import 'package:app/features/products/domain/repositories/products_repository.dart';
-import 'package:app/features/products/data/datasources/products_remote_datasource.dart';
+import 'package:app/features/products/data/datasources/products_local_api_datasource.dart';
 import 'package:dio/dio.dart';
 
 class ProductsRepositoryImpl implements ProductsRepository {
-  ProductsRepositoryImpl(this._remote);
+  ProductsRepositoryImpl(this._localApi);
 
-  final ProductsRemoteDataSource _remote;
+  final ProductsLocalApiDataSource _localApi;
 
   @override
   Future<Result<ItemsListResult, Failure>> getItems({
@@ -20,7 +20,7 @@ class ProductsRepositoryImpl implements ProductsRepository {
     int offset = 0,
   }) async {
     try {
-      final data = await _remote.getItems(
+      final data = await _localApi.getItems(
         category: category,
         search: search,
         limit: limit,
@@ -75,7 +75,7 @@ class ProductsRepositoryImpl implements ProductsRepository {
   @override
   Future<Result<List<ItemCategoryEntity>, Failure>> getCategories() async {
     try {
-      final list = await _remote.getCategories();
+      final list = await _localApi.getCategories();
       return success(list.map((e) => e.toEntity()).toList());
     } on DioException catch (e) {
       return failure(ServerFailure(message: _messageFromDio(e)));
@@ -87,7 +87,7 @@ class ProductsRepositoryImpl implements ProductsRepository {
   @override
   Future<Result<List<ItbisRateEntity>, Failure>> getItbisRates() async {
     try {
-      final list = await _remote.getItbisRates();
+      final list = await _localApi.getItbisRates();
       return success(list.map((e) => e.toEntity()).toList());
     } on DioException catch (e) {
       return failure(ServerFailure(message: _messageFromDio(e)));
@@ -105,7 +105,7 @@ class ProductsRepositoryImpl implements ProductsRepository {
     required int itbisRateId,
   }) async {
     try {
-      final item = await _remote.createItem(
+      final item = await _localApi.createItem(
         name: name,
         description: description,
         unitPrice: unitPrice,
@@ -133,7 +133,7 @@ class ProductsRepositoryImpl implements ProductsRepository {
     int? itbisRateId,
   }) async {
     try {
-      final item = await _remote.updateItem(
+      final item = await _localApi.updateItem(
         id,
         name: name,
         description: description,
@@ -157,6 +157,6 @@ class ProductsRepositoryImpl implements ProductsRepository {
     if (m != null && m.isNotEmpty) return m;
     final code = e.response?.statusCode;
     if (code != null) return 'Error del servidor: $code';
-    return 'Error de conexión';
+    return 'Error de conexiÃ³n';
   }
 }

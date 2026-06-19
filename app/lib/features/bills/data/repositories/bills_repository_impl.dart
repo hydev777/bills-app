@@ -1,6 +1,6 @@
-import 'package:app/core/errors/failures.dart';
+﻿import 'package:app/core/errors/failures.dart';
 import 'package:app/core/errors/result.dart';
-import 'package:app/features/bills/data/datasources/bills_remote_datasource.dart';
+import 'package:app/features/bills/data/datasources/bills_local_api_datasource.dart';
 import 'package:app/features/bills/data/models/bill_model.dart';
 import 'package:app/features/bills/domain/entities/bill_entity.dart';
 import 'package:app/features/bills/domain/repositories/bills_repository.dart';
@@ -8,9 +8,9 @@ import 'package:app/features/sales/domain/entities/sale_line_entity.dart';
 import 'package:dio/dio.dart';
 
 class BillsRepositoryImpl implements BillsRepository {
-  BillsRepositoryImpl(this._remote);
+  BillsRepositoryImpl(this._localApi);
 
-  final BillsRemoteDataSource _remote;
+  final BillsLocalApiDataSource _localApi;
 
   @override
   Future<Result<BillsListResult, Failure>> getBills({
@@ -21,7 +21,7 @@ class BillsRepositoryImpl implements BillsRepository {
     int offset = 0,
   }) async {
     try {
-      final data = await _remote.getBills(
+      final data = await _localApi.getBills(
         status: status,
         userId: userId,
         clientId: clientId,
@@ -54,7 +54,7 @@ class BillsRepositoryImpl implements BillsRepository {
   @override
   Future<Result<BillEntity, Failure>> getBillById(int id) async {
     try {
-      final model = await _remote.getBillById(id);
+      final model = await _localApi.getBillById(id);
       return success<BillEntity, Failure>(model.toEntity());
     } on DioException catch (e) {
       final status = e.response?.statusCode;
@@ -75,7 +75,7 @@ class BillsRepositoryImpl implements BillsRepository {
   @override
   Future<Result<BillEntity, Failure>> getBillByPublicId(String publicId) async {
     try {
-      final model = await _remote.getBillByPublicId(publicId);
+      final model = await _localApi.getBillByPublicId(publicId);
       return success<BillEntity, Failure>(model.toEntity());
     } on DioException catch (e) {
       final status = e.response?.statusCode;
@@ -107,7 +107,7 @@ class BillsRepositoryImpl implements BillsRepository {
       );
       final double totalAmount = subtotal + taxAmount;
 
-      final BillModel billModel = await _remote.createBill(
+      final BillModel billModel = await _localApi.createBill(
         title: 'Venta mostrador',
         description: null,
         amount: totalAmount,
@@ -115,7 +115,7 @@ class BillsRepositoryImpl implements BillsRepository {
         clientId: clientId,
       );
 
-      await _remote.createBillItems(
+      await _localApi.createBillItems(
         billId: billModel.id,
         lines: lines
             .map(
@@ -156,6 +156,6 @@ class BillsRepositoryImpl implements BillsRepository {
     if (m != null && m.isNotEmpty) return m;
     final code = e.response?.statusCode;
     if (code != null) return 'Error del servidor: $code';
-    return 'Error de conexión';
+    return 'Error de conexiÃ³n';
   }
 }

@@ -1,15 +1,15 @@
-import 'package:app/core/errors/failures.dart';
+﻿import 'package:app/core/errors/failures.dart';
 import 'package:app/core/errors/result.dart';
 import 'package:app/features/clients/domain/entities/client_entity.dart';
 import 'package:app/features/clients/domain/repositories/clients_repository.dart';
-import 'package:app/features/clients/data/datasources/clients_remote_datasource.dart';
+import 'package:app/features/clients/data/datasources/clients_local_api_datasource.dart';
 import 'package:app/features/clients/data/models/client_model.dart';
 import 'package:dio/dio.dart';
 
 class ClientsRepositoryImpl implements ClientsRepository {
-  ClientsRepositoryImpl(this._remote);
+  ClientsRepositoryImpl(this._localApi);
 
-  final ClientsRemoteDataSource _remote;
+  final ClientsLocalApiDataSource _localApi;
 
   @override
   Future<Result<ClientsListResult, Failure>> getClients({
@@ -18,7 +18,7 @@ class ClientsRepositoryImpl implements ClientsRepository {
     int offset = 0,
   }) async {
     try {
-      final data = await _remote.getClients(
+      final data = await _localApi.getClients(
         search: search,
         limit: limit,
         offset: offset,
@@ -56,7 +56,7 @@ class ClientsRepositoryImpl implements ClientsRepository {
     String? address,
   }) async {
     try {
-      final data = await _remote.createClient(
+      final data = await _localApi.createClient(
         name: name,
         identifier: identifier,
         taxId: taxId,
@@ -90,7 +90,7 @@ class ClientsRepositoryImpl implements ClientsRepository {
     String? address,
   }) async {
     try {
-      final data = await _remote.updateClient(
+      final data = await _localApi.updateClient(
         id,
         name: name,
         identifier: identifier,
@@ -122,6 +122,6 @@ class ClientsRepositoryImpl implements ClientsRepository {
     if (m != null && m.isNotEmpty) return m;
     final code = e.response?.statusCode;
     if (code != null) return 'Error del servidor: $code';
-    return 'Error de conexión';
+    return 'Error de conexiÃ³n';
   }
 }

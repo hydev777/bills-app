@@ -1,4 +1,3 @@
-import 'package:app/core/constants/api_constants.dart';
 import 'package:app/features/bills/presentation/bloc/bills_bloc.dart';
 import 'package:app/features/bills/presentation/bloc/bills_event.dart';
 import 'package:app/features/bills/presentation/views/bills_view.dart';
@@ -35,7 +34,6 @@ late final GoRouter appRouter;
 void initRouter() {
   final authBloc = sl<AuthBloc>();
   final refreshNotifier = _AuthRefreshNotifier(authBloc);
-  final isLocal = ApiConstants.isLocal;
 
   appRouter = GoRouter(
     refreshListenable: refreshNotifier,
@@ -57,11 +55,7 @@ void initRouter() {
       if (isAuthenticated && location == '/home') {
         return '/home/facturas';
       }
-      if (isLocal && location == '/home/sucursales') {
-        return '/home/facturas';
-      }
-      if (isLocal &&
-          location.startsWith('/home/usuarios') &&
+      if (location.startsWith('/home/usuarios') &&
           (!_isLocalAdmin(authState))) {
         return '/home/facturas';
       }
@@ -106,20 +100,13 @@ void initRouter() {
                 builder: (context, state) =>
                     const PlaceholderView(title: 'Categorias'),
               ),
-              if (isLocal)
-                GoRoute(
-                  path: 'usuarios',
-                  builder: (context, state) => BlocProvider<UsersBloc>(
-                    create: (_) => sl<UsersBloc>()..add(const UsersLoaded()),
-                    child: const UsersView(),
-                  ),
+              GoRoute(
+                path: 'usuarios',
+                builder: (context, state) => BlocProvider<UsersBloc>(
+                  create: (_) => sl<UsersBloc>()..add(const UsersLoaded()),
+                  child: const UsersView(),
                 ),
-              if (!isLocal)
-                GoRoute(
-                  path: 'sucursales',
-                  builder: (context, state) =>
-                      const PlaceholderView(title: 'Sucursales'),
-                ),
+              ),
             ],
           ),
         ],

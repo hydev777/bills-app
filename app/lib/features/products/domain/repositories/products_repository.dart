@@ -5,7 +5,7 @@ import 'package:app/features/products/domain/entities/item_entity.dart';
 import 'package:app/features/products/domain/entities/itbis_rate_entity.dart';
 
 abstract class ProductsRepository {
-  /// Returns items list with total. Branch from session/header.
+  /// Returns items list with total.
   Future<Result<ItemsListResult, Failure>> getItems({
     String? category,
     String? search,

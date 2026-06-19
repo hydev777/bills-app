@@ -1,9 +1,9 @@
-import 'package:app/core/network/api_client.dart';
+﻿import 'package:app/core/network/api_client.dart';
 import 'package:app/core/local_api/local_api_server.dart';
 import 'package:app/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:app/features/auth/data/datasources/auth_local_datasource_impl.dart';
-import 'package:app/features/auth/data/datasources/auth_remote_datasource.dart';
-import 'package:app/features/auth/data/datasources/auth_remote_datasource_impl.dart';
+import 'package:app/features/auth/data/datasources/auth_local_api_datasource.dart';
+import 'package:app/features/auth/data/datasources/auth_local_api_datasource_impl.dart';
 import 'package:app/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:app/features/auth/domain/usecases/get_session_usecase.dart';
@@ -12,8 +12,8 @@ import 'package:app/features/auth/domain/usecases/login_usecase.dart';
 import 'package:app/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:app/features/auth/domain/usecases/create_initial_admin_usecase.dart';
 import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:app/features/products/data/datasources/products_remote_datasource.dart';
-import 'package:app/features/products/data/datasources/products_remote_datasource_impl.dart';
+import 'package:app/features/products/data/datasources/products_local_api_datasource.dart';
+import 'package:app/features/products/data/datasources/products_local_api_datasource_impl.dart';
 import 'package:app/features/products/data/repositories/products_repository_impl.dart';
 import 'package:app/features/products/domain/repositories/products_repository.dart';
 import 'package:app/features/products/domain/usecases/create_item_usecase.dart';
@@ -22,16 +22,16 @@ import 'package:app/features/products/domain/usecases/get_itbis_rates_usecase.da
 import 'package:app/features/products/domain/usecases/get_items_usecase.dart';
 import 'package:app/features/products/domain/usecases/update_item_usecase.dart';
 import 'package:app/features/products/presentation/bloc/products_bloc.dart';
-import 'package:app/features/clients/data/datasources/clients_remote_datasource.dart';
-import 'package:app/features/clients/data/datasources/clients_remote_datasource_impl.dart';
+import 'package:app/features/clients/data/datasources/clients_local_api_datasource.dart';
+import 'package:app/features/clients/data/datasources/clients_local_api_datasource_impl.dart';
 import 'package:app/features/clients/data/repositories/clients_repository_impl.dart';
 import 'package:app/features/clients/domain/repositories/clients_repository.dart';
 import 'package:app/features/clients/domain/usecases/get_clients_usecase.dart';
 import 'package:app/features/clients/domain/usecases/create_client_usecase.dart';
 import 'package:app/features/clients/domain/usecases/update_client_usecase.dart';
 import 'package:app/features/clients/presentation/bloc/clients_bloc.dart';
-import 'package:app/features/bills/data/datasources/bills_remote_datasource.dart';
-import 'package:app/features/bills/data/datasources/bills_remote_datasource_impl.dart';
+import 'package:app/features/bills/data/datasources/bills_local_api_datasource.dart';
+import 'package:app/features/bills/data/datasources/bills_local_api_datasource_impl.dart';
 import 'package:app/features/bills/data/repositories/bills_repository_impl.dart';
 import 'package:app/features/bills/domain/repositories/bills_repository.dart';
 import 'package:app/features/bills/domain/usecases/get_bills_usecase.dart';
@@ -40,8 +40,8 @@ import 'package:app/features/bills/domain/usecases/get_bill_by_public_id_usecase
 import 'package:app/features/bills/domain/usecases/create_sale_bill_usecase.dart';
 import 'package:app/features/bills/presentation/bloc/bills_bloc.dart';
 import 'package:app/features/sales/presentation/bloc/sale_bloc.dart';
-import 'package:app/features/users/data/datasources/local_users_remote_datasource.dart';
-import 'package:app/features/users/data/datasources/local_users_remote_datasource_impl.dart';
+import 'package:app/features/users/data/datasources/users_local_api_datasource.dart';
+import 'package:app/features/users/data/datasources/users_local_api_datasource_impl.dart';
 import 'package:app/features/users/data/repositories/local_users_repository_impl.dart';
 import 'package:app/features/users/domain/repositories/local_users_repository.dart';
 import 'package:app/features/users/domain/usecases/create_local_user_usecase.dart';
@@ -55,27 +55,24 @@ import 'package:dio/dio.dart';
 final GetIt sl = GetIt.instance;
 
 Future<void> initInjection({
-  String? apiBaseUrl,
-  LocalApiServer? localApiServer,
+  required LocalApiServer localApiServer,
 }) async {
   // Core
-  if (localApiServer != null) {
-    sl.registerLazySingleton<LocalApiServer>(() => localApiServer);
-  }
+  sl.registerLazySingleton<LocalApiServer>(() => localApiServer);
   sl.registerLazySingleton<Dio>(
-    () => createApiClient(baseUrl: apiBaseUrl, localApiServer: localApiServer),
+    () => createApiClient(localApiServer: localApiServer),
   );
 
   // Auth - Data
-  sl.registerLazySingleton<AuthRemoteDataSource>(
-    () => AuthRemoteDataSourceImpl(sl<Dio>()),
+  sl.registerLazySingleton<AuthLocalApiDataSource>(
+    () => AuthLocalApiDataSourceImpl(sl<Dio>()),
   );
   sl.registerLazySingleton<AuthLocalDataSource>(
     () => AuthLocalDataSourceImpl(),
   );
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(
-      remote: sl<AuthRemoteDataSource>(),
+      localApi: sl<AuthLocalApiDataSource>(),
       local: sl<AuthLocalDataSource>(),
     ),
   );
@@ -109,11 +106,11 @@ Future<void> initInjection({
   );
 
   // Products - Data
-  sl.registerLazySingleton<ProductsRemoteDataSource>(
-    () => ProductsRemoteDataSourceImpl(sl<Dio>()),
+  sl.registerLazySingleton<ProductsLocalApiDataSource>(
+    () => ProductsLocalApiDataSourceImpl(sl<Dio>()),
   );
   sl.registerLazySingleton<ProductsRepository>(
-    () => ProductsRepositoryImpl(sl<ProductsRemoteDataSource>()),
+    () => ProductsRepositoryImpl(sl<ProductsLocalApiDataSource>()),
   );
 
   // Products - Domain (use cases)
@@ -145,11 +142,11 @@ Future<void> initInjection({
   );
 
   // Clients - Data
-  sl.registerLazySingleton<ClientsRemoteDataSource>(
-    () => ClientsRemoteDataSourceImpl(sl<Dio>()),
+  sl.registerLazySingleton<ClientsLocalApiDataSource>(
+    () => ClientsLocalApiDataSourceImpl(sl<Dio>()),
   );
   sl.registerLazySingleton<ClientsRepository>(
-    () => ClientsRepositoryImpl(sl<ClientsRemoteDataSource>()),
+    () => ClientsRepositoryImpl(sl<ClientsLocalApiDataSource>()),
   );
 
   // Clients - Domain (use cases)
@@ -173,11 +170,11 @@ Future<void> initInjection({
   );
 
   // Bills - Data
-  sl.registerLazySingleton<BillsRemoteDataSource>(
-    () => BillsRemoteDataSourceImpl(sl<Dio>()),
+  sl.registerLazySingleton<BillsLocalApiDataSource>(
+    () => BillsLocalApiDataSourceImpl(sl<Dio>()),
   );
   sl.registerLazySingleton<BillsRepository>(
-    () => BillsRepositoryImpl(sl<BillsRemoteDataSource>()),
+    () => BillsRepositoryImpl(sl<BillsLocalApiDataSource>()),
   );
 
   // Bills - Domain (use cases)
@@ -212,12 +209,12 @@ Future<void> initInjection({
   );
 
   // Users - Data
-  sl.registerLazySingleton<LocalUsersRemoteDataSource>(
-    () => LocalUsersRemoteDataSourceImpl(sl<Dio>()),
+  sl.registerLazySingleton<UsersLocalApiDataSource>(
+    () => UsersLocalApiDataSourceImpl(sl<Dio>()),
   );
   sl.registerLazySingleton<LocalUsersRepository>(
     () => LocalUsersRepositoryImpl(
-      remote: sl<LocalUsersRemoteDataSource>(),
+      localApi: sl<UsersLocalApiDataSource>(),
       authLocalDataSource: sl<AuthLocalDataSource>(),
     ),
   );

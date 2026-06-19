@@ -1,9 +1,9 @@
-import 'package:app/features/products/data/models/item_category_model.dart';
+﻿import 'package:app/features/products/data/models/item_category_model.dart';
 import 'package:app/features/products/data/models/item_model.dart';
 import 'package:app/features/products/data/models/itbis_rate_model.dart';
 
-abstract class ProductsRemoteDataSource {
-  /// GET /api/items. In remote mode, branch comes from X-Branch-Id header.
+abstract class ProductsLocalApiDataSource {
+  /// GET /api/items.
   Future<Map<String, dynamic>> getItems({
     String? category,
     String? search,

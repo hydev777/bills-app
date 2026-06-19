@@ -1,6 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:app/core/constants/api_constants.dart';
 import 'package:app/features/auth/domain/usecases/create_initial_admin_usecase.dart';
 import 'package:app/features/auth/domain/usecases/get_session_usecase.dart';
 import 'package:app/features/auth/domain/usecases/has_local_users_usecase.dart';
@@ -62,10 +61,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final session = await _getSessionUseCase.call();
     if (session != null) {
       emit(AuthAuthenticated(session));
-      return;
-    }
-    if (!ApiConstants.isLocal) {
-      emit(const AuthUnauthenticated());
       return;
     }
     final result = await _hasLocalUsersUseCase.call();

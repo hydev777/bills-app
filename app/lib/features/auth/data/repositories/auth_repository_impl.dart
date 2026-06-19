@@ -1,23 +1,20 @@
 import 'package:app/core/errors/failures.dart';
 import 'package:app/core/errors/result.dart';
-import 'package:app/core/constants/api_constants.dart';
-import 'package:app/features/auth/data/models/branch_model.dart';
+import 'package:app/features/auth/data/datasources/auth_local_api_datasource.dart';
+import 'package:app/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:app/features/auth/data/models/login_response.dart';
-import 'package:app/features/auth/domain/entities/branch_entity.dart';
 import 'package:app/features/auth/domain/entities/session.dart';
 import 'package:app/features/auth/domain/repositories/auth_repository.dart';
-import 'package:app/features/auth/data/datasources/auth_local_datasource.dart';
-import 'package:app/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:dio/dio.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
-    required AuthRemoteDataSource remote,
+    required AuthLocalApiDataSource localApi,
     required AuthLocalDataSource local,
-  }) : _remote = remote,
+  }) : _localApi = localApi,
        _local = local;
 
-  final AuthRemoteDataSource _remote;
+  final AuthLocalApiDataSource _localApi;
   final AuthLocalDataSource _local;
 
   @override
@@ -26,9 +23,7 @@ class AuthRepositoryImpl implements AuthRepository {
     String password,
   ) async {
     try {
-      final response = ApiConstants.isLocal
-          ? await _remote.loginLocal(identifier, password)
-          : await _remote.login(identifier, password);
+      final response = await _localApi.login(identifier, password);
       final session = _sessionFromLoginResponse(response);
       await _local.saveSession(session);
       return success(session);
@@ -46,7 +41,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Result<bool, Failure>> hasLocalUsers() async {
     try {
-      final hasUsers = await _remote.hasLocalUsers();
+      final hasUsers = await _localApi.hasLocalUsers();
       return success(hasUsers);
     } on DioException catch (e) {
       return failure(ServerFailure(message: _messageFromDioException(e)));
@@ -61,7 +56,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
   }) async {
     try {
-      final response = await _remote.createInitialAdmin(
+      final response = await _localApi.createInitialAdmin(
         username: username,
         password: password,
       );
@@ -86,27 +81,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   Session _sessionFromLoginResponse(LoginResponse response) {
-    final branches = response.accessibleBranches
-        .map<BranchEntity>((b) => b.toEntity())
-        .toList(growable: false);
-    final selectedBranchId = _selectDefaultBranch(response.accessibleBranches);
-    return Session(
-      token: response.token,
-      user: response.user.toEntity(),
-      accessibleBranches: branches,
-      selectedBranchId: selectedBranchId,
-    );
-  }
-
-  int? _selectDefaultBranch(List<BranchModel> branches) {
-    if (branches.isEmpty) return null;
-    for (final b in branches) {
-      if (b.isPrimary && b.canLogin) return b.id;
-    }
-    for (final b in branches) {
-      if (b.canLogin) return b.id;
-    }
-    return branches.first.id;
+    return Session(token: response.token, user: response.user.toEntity());
   }
 
   String _messageFromDioException(DioException e) {
@@ -114,6 +89,6 @@ class AuthRepositoryImpl implements AuthRepository {
     if (msg != null && msg.isNotEmpty) return msg;
     final statusCode = e.response?.statusCode;
     if (statusCode != null) return 'Error del servidor: $statusCode';
-    return 'Error de conexión';
+    return 'Error de conexion';
   }
 }

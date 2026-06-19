@@ -1,9 +1,9 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 
-import 'clients_remote_datasource.dart';
+import 'clients_local_api_datasource.dart';
 
-class ClientsRemoteDataSourceImpl implements ClientsRemoteDataSource {
-  ClientsRemoteDataSourceImpl(this._dio);
+class ClientsLocalApiDataSourceImpl implements ClientsLocalApiDataSource {
+  ClientsLocalApiDataSourceImpl(this._dio);
 
   final Dio _dio;
 

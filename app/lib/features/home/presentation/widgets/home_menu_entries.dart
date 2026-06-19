@@ -1,4 +1,3 @@
-import 'package:app/core/constants/api_constants.dart';
 import 'package:app/features/auth/domain/entities/session.dart';
 import 'package:flutter/material.dart';
 
@@ -15,19 +14,11 @@ List<({IconData icon, String label, String path})> homeMenuEntries({
     (icon: Icons.inventory_2, label: 'Productos', path: '/home/productos'),
     (icon: Icons.category, label: 'Categorias', path: '/home/categorias'),
   ];
-  if (ApiConstants.isLocal &&
-      session?.user.role.toLowerCase() == 'administrador') {
+  if (session?.user.role.toLowerCase() == 'administrador') {
     entries.add((
       icon: Icons.manage_accounts,
       label: 'Usuarios',
       path: '/home/usuarios',
-    ));
-  }
-  if (!ApiConstants.isLocal) {
-    entries.add((
-      icon: Icons.store,
-      label: 'Sucursales',
-      path: '/home/sucursales',
     ));
   }
   return entries;

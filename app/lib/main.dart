@@ -1,45 +1,25 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:app/app.dart';
-import 'package:app/core/constants/api_constants.dart';
 import 'package:app/core/local_api/local_api_server.dart';
-import 'package:app/core/network/api_client.dart';
 import 'package:app/injection.dart';
 import 'package:app/router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env', isOptional: true);
 
-  LocalApiServer? localApiServer;
-  String? apiBaseUrl;
-  if (ApiConstants.isLocal) {
-    try {
-      localApiServer = await LocalApiServer.startPersistent();
-      apiBaseUrl = localApiServer.baseUrl;
-      if (apiBaseUrl == null) {
-        throw const LocalApiStartupException('API local sin URL base');
-      }
-    } catch (e) {
-      runApp(LocalStartupErrorApp(message: e.toString()));
-      return;
+  late final LocalApiServer localApiServer;
+  try {
+    localApiServer = await LocalApiServer.startPersistent();
+    if (localApiServer.baseUrl == null) {
+      throw const LocalApiStartupException('API local sin URL base');
     }
+  } catch (e) {
+    runApp(LocalStartupErrorApp(message: e.toString()));
+    return;
   }
 
-  await initInjection(apiBaseUrl: apiBaseUrl, localApiServer: localApiServer);
-  if (ApiConstants.env == 'dev') {
-    final ok = await checkBackendHealth(ApiConstants.baseUrl);
-    if (kDebugMode) {
-      // ignore: avoid_print
-      print(
-        ok
-            ? 'Backend reachable at ${ApiConstants.baseUrl}'
-            : 'Backend unreachable at ${ApiConstants.baseUrl}',
-      );
-    }
-  }
+  await initInjection(localApiServer: localApiServer);
   initRouter();
   runApp(const App());
 }

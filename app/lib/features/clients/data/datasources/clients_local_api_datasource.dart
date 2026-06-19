@@ -1,4 +1,4 @@
-abstract class ClientsRemoteDataSource {
+﻿abstract class ClientsLocalApiDataSource {
   /// GET /api/clients. Query: search, limit, offset.
   Future<Map<String, dynamic>> getClients({
     String? search,

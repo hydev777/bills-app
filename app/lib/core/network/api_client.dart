@@ -1,16 +1,20 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 
 import '../constants/api_constants.dart';
 import '../local_api/local_api_server.dart';
-import 'branch_interceptor.dart';
+import 'auth_interceptor.dart';
 import 'http_logger_interceptor.dart';
 
-/// Creates a configured Dio instance for the API.
-/// Adds auth for protected API requests and branch scope for remote requests.
-Dio createApiClient({String? baseUrl, LocalApiServer? localApiServer}) {
+/// Creates a configured Dio instance for the embedded local API.
+Dio createApiClient({required LocalApiServer localApiServer}) {
+  final baseUrl = localApiServer.baseUrl;
+  if (baseUrl == null) {
+    throw const LocalApiStartupException('API local sin URL base');
+  }
+
   final dio = Dio(
     BaseOptions(
-      baseUrl: baseUrl ?? ApiConstants.baseUrl,
+      baseUrl: baseUrl,
       connectTimeout: ApiConstants.connectTimeout,
       receiveTimeout: ApiConstants.receiveTimeout,
       headers: {
@@ -19,29 +23,10 @@ Dio createApiClient({String? baseUrl, LocalApiServer? localApiServer}) {
       },
     ),
   );
-  if (localApiServer != null) {
-    dio.interceptors.add(_LocalApiHealthInterceptor(localApiServer));
-  }
-  dio.interceptors.add(BranchInterceptor());
+  dio.interceptors.add(_LocalApiHealthInterceptor(localApiServer));
+  dio.interceptors.add(AuthInterceptor());
   dio.interceptors.add(HttpLoggerInterceptor());
   return dio;
-}
-
-/// Checks if the backend is reachable via GET /health. Returns true if OK.
-Future<bool> checkBackendHealth(String baseUrl) async {
-  try {
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 3),
-        receiveTimeout: const Duration(seconds: 3),
-      ),
-    );
-    final response = await dio.get('/health');
-    return response.statusCode == 200;
-  } catch (_) {
-    return false;
-  }
 }
 
 class _LocalApiHealthInterceptor extends QueuedInterceptor {

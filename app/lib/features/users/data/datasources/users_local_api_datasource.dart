@@ -1,6 +1,6 @@
-import 'package:app/features/users/data/models/local_user_model.dart';
+﻿import 'package:app/features/users/data/models/local_user_model.dart';
 
-abstract class LocalUsersRemoteDataSource {
+abstract class UsersLocalApiDataSource {
   Future<List<LocalUserModel>> getUsers();
   Future<LocalUserModel> createUser({
     required String username,

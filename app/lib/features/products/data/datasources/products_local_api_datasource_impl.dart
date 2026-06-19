@@ -1,13 +1,13 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 
 import 'package:app/features/products/data/models/item_category_model.dart';
 import 'package:app/features/products/data/models/item_model.dart';
 import 'package:app/features/products/data/models/itbis_rate_model.dart';
 
-import 'products_remote_datasource.dart';
+import 'products_local_api_datasource.dart';
 
-class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
-  ProductsRemoteDataSourceImpl(this._dio);
+class ProductsLocalApiDataSourceImpl implements ProductsLocalApiDataSource {
+  ProductsLocalApiDataSourceImpl(this._dio);
 
   final Dio _dio;
 

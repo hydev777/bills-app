@@ -1,27 +1,27 @@
-import 'package:app/core/errors/failures.dart';
+﻿import 'package:app/core/errors/failures.dart';
 import 'package:app/core/errors/result.dart';
 import 'package:app/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:app/features/auth/domain/entities/session.dart';
 import 'package:app/features/auth/domain/entities/user_entity.dart';
-import 'package:app/features/users/data/datasources/local_users_remote_datasource.dart';
+import 'package:app/features/users/data/datasources/users_local_api_datasource.dart';
 import 'package:app/features/users/domain/entities/local_user_entity.dart';
 import 'package:app/features/users/domain/repositories/local_users_repository.dart';
 import 'package:dio/dio.dart';
 
 class LocalUsersRepositoryImpl implements LocalUsersRepository {
   LocalUsersRepositoryImpl({
-    required LocalUsersRemoteDataSource remote,
+    required UsersLocalApiDataSource localApi,
     required AuthLocalDataSource authLocalDataSource,
-  }) : _remote = remote,
+  }) : _localApi = localApi,
        _authLocalDataSource = authLocalDataSource;
 
-  final LocalUsersRemoteDataSource _remote;
+  final UsersLocalApiDataSource _localApi;
   final AuthLocalDataSource _authLocalDataSource;
 
   @override
   Future<Result<List<LocalUserEntity>, Failure>> getUsers() async {
     try {
-      final users = await _remote.getUsers();
+      final users = await _localApi.getUsers();
       return success(users);
     } on DioException catch (e) {
       return failure(ServerFailure(message: _messageFromDioException(e)));
@@ -37,7 +37,7 @@ class LocalUsersRepositoryImpl implements LocalUsersRepository {
     required String role,
   }) async {
     try {
-      final user = await _remote.createUser(
+      final user = await _localApi.createUser(
         username: username,
         password: password,
         role: role,
@@ -58,7 +58,7 @@ class LocalUsersRepositoryImpl implements LocalUsersRepository {
     required String role,
   }) async {
     try {
-      final user = await _remote.updateUser(
+      final user = await _localApi.updateUser(
         id: id,
         username: username,
         password: password,
@@ -76,7 +76,7 @@ class LocalUsersRepositoryImpl implements LocalUsersRepository {
   @override
   Future<Result<void, Failure>> deleteUser(int id) async {
     try {
-      await _remote.deleteUser(id);
+      await _localApi.deleteUser(id);
       return success(null);
     } on DioException catch (e) {
       return failure(ServerFailure(message: _messageFromDioException(e)));
@@ -99,8 +99,6 @@ class LocalUsersRepositoryImpl implements LocalUsersRepository {
           email: session.user.email,
           role: updatedUser.role,
         ),
-        accessibleBranches: session.accessibleBranches,
-        selectedBranchId: session.selectedBranchId,
       ),
     );
   }

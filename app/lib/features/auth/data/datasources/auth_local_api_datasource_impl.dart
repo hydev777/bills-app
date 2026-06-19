@@ -1,25 +1,16 @@
-import 'package:app/core/constants/api_constants.dart';
+﻿import 'package:app/core/constants/api_constants.dart';
 import 'package:app/features/auth/data/models/login_response.dart';
 import 'package:dio/dio.dart';
 
-import 'auth_remote_datasource.dart';
+import 'auth_local_api_datasource.dart';
 
-class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
-  AuthRemoteDataSourceImpl(this._dio);
+class AuthLocalApiDataSourceImpl implements AuthLocalApiDataSource {
+  AuthLocalApiDataSourceImpl(this._dio);
 
   final Dio _dio;
 
   @override
-  Future<LoginResponse> login(String email, String password) async {
-    final response = await _dio.post<Map<String, dynamic>>(
-      ApiConstants.loginPath,
-      data: {'email': email, 'password': password},
-    );
-    return _responseToLogin(response);
-  }
-
-  @override
-  Future<LoginResponse> loginLocal(String username, String password) async {
+  Future<LoginResponse> login(String username, String password) async {
     final response = await _dio.post<Map<String, dynamic>>(
       ApiConstants.loginPath,
       data: {'username': username, 'password': password},

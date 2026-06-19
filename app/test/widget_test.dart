@@ -11,7 +11,6 @@ import 'package:app/features/auth/domain/usecases/create_initial_admin_usecase.d
 import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:app/injection.dart';
 import 'package:app/router.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeAuthRepository implements AuthRepository {
@@ -44,13 +43,6 @@ class _FakeAuthRepository implements AuthRepository {
 void main() {
   setUp(() async {
     await sl.reset();
-    dotenv.loadFromString(
-      envString: '''
-ENV=dev
-BASE_URL_DEV=http://localhost:3000
-BASE_URL_PROD=https://api.example.com
-''',
-    );
     final repository = _FakeAuthRepository();
     sl.registerLazySingleton<AuthBloc>(
       () => AuthBloc(
