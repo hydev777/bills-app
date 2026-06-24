@@ -1,4 +1,4 @@
-﻿import 'package:app/core/network/api_client.dart';
+import 'package:app/core/network/api_client.dart';
 import 'package:app/core/local_api/local_api_server.dart';
 import 'package:app/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:app/features/auth/data/datasources/auth_local_datasource_impl.dart';
@@ -39,6 +39,12 @@ import 'package:app/features/bills/domain/usecases/get_bill_by_id_usecase.dart';
 import 'package:app/features/bills/domain/usecases/get_bill_by_public_id_usecase.dart';
 import 'package:app/features/bills/domain/usecases/create_sale_bill_usecase.dart';
 import 'package:app/features/bills/presentation/bloc/bills_bloc.dart';
+import 'package:app/features/reports/data/datasources/reports_local_api_datasource.dart';
+import 'package:app/features/reports/data/datasources/reports_local_api_datasource_impl.dart';
+import 'package:app/features/reports/data/repositories/reports_repository_impl.dart';
+import 'package:app/features/reports/domain/repositories/reports_repository.dart';
+import 'package:app/features/reports/domain/usecases/get_bill_report_usecase.dart';
+import 'package:app/features/reports/presentation/bloc/reports_bloc.dart';
 import 'package:app/features/sales/presentation/bloc/sale_bloc.dart';
 import 'package:app/features/users/data/datasources/users_local_api_datasource.dart';
 import 'package:app/features/users/data/datasources/users_local_api_datasource_impl.dart';
@@ -54,9 +60,7 @@ import 'package:dio/dio.dart';
 
 final GetIt sl = GetIt.instance;
 
-Future<void> initInjection({
-  required LocalApiServer localApiServer,
-}) async {
+Future<void> initInjection({required LocalApiServer localApiServer}) async {
   // Core
   sl.registerLazySingleton<LocalApiServer>(() => localApiServer);
   sl.registerLazySingleton<Dio>(
@@ -198,6 +202,24 @@ Future<void> initInjection({
       getBillByIdUseCase: sl<GetBillByIdUseCase>(),
       getBillByPublicIdUseCase: sl<GetBillByPublicIdUseCase>(),
     ),
+  );
+
+  // Reports - Data
+  sl.registerLazySingleton<ReportsLocalApiDataSource>(
+    () => ReportsLocalApiDataSourceImpl(sl<Dio>()),
+  );
+  sl.registerLazySingleton<ReportsRepository>(
+    () => ReportsRepositoryImpl(sl<ReportsLocalApiDataSource>()),
+  );
+
+  // Reports - Domain
+  sl.registerLazySingleton<GetBillReportUseCase>(
+    () => GetBillReportUseCase(sl<ReportsRepository>()),
+  );
+
+  // Reports - Presentation
+  sl.registerFactory<ReportsBloc>(
+    () => ReportsBloc(getBillReportUseCase: sl<GetBillReportUseCase>()),
   );
 
   // Sales - Presentation

@@ -6,6 +6,7 @@ import 'package:app/core/local_api/local_bootstrap_metadata.dart';
 import 'package:app/core/local_api/local_api_clients.dart';
 import 'package:app/core/local_api/local_api_items.dart';
 import 'package:app/core/local_api/local_api_itbis.dart';
+import 'package:app/core/local_api/local_api_reports.dart';
 import 'package:app/core/local_api/local_api_shared.dart';
 import 'package:app/core/local_api/local_api_users.dart';
 import 'package:app/core/local_api/local_auth.dart';
@@ -139,6 +140,7 @@ class LocalApiServer {
     registerItbisRoutes(router, _context, _safe);
     registerClientRoutes(router, _context, _safe);
     registerBillRoutes(router, _context, _safe);
+    registerReportRoutes(router, _context, _safe);
     router.all(
       '/<ignored|.*>',
       _safe((request) async {

@@ -10,6 +10,8 @@ import 'package:app/features/auth/presentation/views/login_view.dart';
 import 'package:app/features/home/presentation/views/home_shell_view.dart';
 import 'package:app/features/home/presentation/views/placeholder_view.dart';
 import 'package:app/features/products/presentation/views/products_view.dart';
+import 'package:app/features/reports/presentation/bloc/reports_bloc.dart';
+import 'package:app/features/reports/presentation/views/reports_view.dart';
 import 'package:app/features/sales/presentation/bloc/sale_bloc.dart';
 import 'package:app/features/sales/presentation/views/sale_view.dart';
 import 'package:app/features/users/presentation/bloc/users_bloc.dart';
@@ -75,6 +77,13 @@ void initRouter() {
                 builder: (context, state) => BlocProvider<BillsBloc>(
                   create: (_) => sl<BillsBloc>()..add(const BillsLoaded()),
                   child: const BillsView(),
+                ),
+              ),
+              GoRoute(
+                path: 'reportes',
+                builder: (context, state) => BlocProvider<ReportsBloc>(
+                  create: (_) => sl<ReportsBloc>(),
+                  child: const ReportsView(),
                 ),
               ),
               GoRoute(

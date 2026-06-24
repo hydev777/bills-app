@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project SQLite"
+  short_description: "SQLite practices for local data"
+  default_prompt: "Use $project-sqlite to design, review, or optimize SQLite and embedded local API changes in this app."

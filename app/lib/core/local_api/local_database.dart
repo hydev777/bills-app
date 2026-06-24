@@ -206,6 +206,7 @@ CREATE TABLE IF NOT EXISTS user_privileges (
 );
 CREATE INDEX IF NOT EXISTS idx_bills_user_id ON bills(user_id);
 CREATE INDEX IF NOT EXISTS idx_bills_client_id ON bills(client_id);
+CREATE INDEX IF NOT EXISTS idx_bills_created_at ON bills(created_at);
 CREATE INDEX IF NOT EXISTS idx_items_category_id ON items(category_id);
 CREATE INDEX IF NOT EXISTS idx_items_itbis_rate_id ON items(itbis_rate_id);
 CREATE INDEX IF NOT EXISTS idx_bill_details_bill_id ON bill_details(bill_id);

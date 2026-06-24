@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Performance"
+  short_description: "Performance practices for this app"
+  default_prompt: "Use $project-performance to review or implement performance-sensitive changes in this local Flutter billing app."
