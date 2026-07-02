@@ -46,6 +46,8 @@ dependencies:
   path: ^1.9.0
   crypto: ^3.0.6
   syncfusion_flutter_charts: ^33.2.13+1
+  thermal_printer: ^1.0.5
+  shared_preferences: ^2.3.5
 
 dev_dependencies:
   flutter_test:

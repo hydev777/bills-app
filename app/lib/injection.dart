@@ -1,5 +1,25 @@
 import 'package:app/core/network/api_client.dart';
 import 'package:app/core/local_api/local_api_server.dart';
+import 'package:app/features/configuration/data/datasources/configuration_local_datasource.dart';
+import 'package:app/features/configuration/data/datasources/configuration_local_datasource_impl.dart';
+import 'package:app/features/configuration/data/datasources/printer_datasource.dart';
+import 'package:app/features/configuration/data/datasources/thermal_printer_datasource_impl.dart';
+import 'package:app/features/configuration/data/repositories/printer_configuration_repository_impl.dart';
+import 'package:app/features/configuration/data/repositories/receipt_configuration_repository_impl.dart';
+import 'package:app/features/configuration/domain/repositories/printer_configuration_repository.dart';
+import 'package:app/features/configuration/domain/repositories/receipt_configuration_repository.dart';
+import 'package:app/features/configuration/domain/services/receipt_generator.dart';
+import 'package:app/features/configuration/domain/usecases/check_printer_connection_usecase.dart';
+import 'package:app/features/configuration/domain/usecases/clear_printer_configuration_usecase.dart';
+import 'package:app/features/configuration/domain/usecases/disconnect_printer_usecase.dart';
+import 'package:app/features/configuration/domain/usecases/discover_printers_usecase.dart';
+import 'package:app/features/configuration/domain/usecases/get_printer_configuration_usecase.dart';
+import 'package:app/features/configuration/domain/usecases/get_receipt_settings_usecase.dart';
+import 'package:app/features/configuration/domain/usecases/print_receipt_usecase.dart';
+import 'package:app/features/configuration/domain/usecases/save_printer_configuration_usecase.dart';
+import 'package:app/features/configuration/domain/usecases/save_receipt_settings_usecase.dart';
+import 'package:app/features/configuration/presentation/bloc/printer_configuration_cubit.dart';
+import 'package:app/features/configuration/presentation/bloc/receipt_configuration_cubit.dart';
 import 'package:app/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:app/features/auth/data/datasources/auth_local_datasource_impl.dart';
 import 'package:app/features/auth/data/datasources/auth_local_api_datasource.dart';
@@ -57,12 +77,18 @@ import 'package:app/features/users/domain/usecases/update_local_user_usecase.dar
 import 'package:app/features/users/presentation/bloc/users_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:thermal_printer/thermal_printer.dart';
 
 final GetIt sl = GetIt.instance;
 
 Future<void> initInjection({required LocalApiServer localApiServer}) async {
+  final sharedPreferences = await SharedPreferences.getInstance();
+
   // Core
   sl.registerLazySingleton<LocalApiServer>(() => localApiServer);
+  sl.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
+  sl.registerLazySingleton<PrinterManager>(() => PrinterManager.instance);
   sl.registerLazySingleton<Dio>(
     () => createApiClient(localApiServer: localApiServer),
   );
@@ -227,6 +253,87 @@ Future<void> initInjection({required LocalApiServer localApiServer}) async {
     () => SaleBloc(
       getItemsUseCase: sl<GetItemsUseCase>(),
       createSaleBillUseCase: sl<CreateSaleBillUseCase>(),
+      printReceiptUseCase: sl<PrintReceiptUseCase>(),
+    ),
+  );
+
+  // Configuration - Data
+  sl.registerLazySingleton<ConfigurationLocalDataSource>(
+    () => ConfigurationLocalDataSourceImpl(sl<SharedPreferences>()),
+  );
+  sl.registerLazySingleton<PrinterDataSource>(
+    () => ThermalPrinterDataSourceImpl(sl<PrinterManager>()),
+  );
+  sl.registerLazySingleton<PrinterConfigurationRepository>(
+    () => PrinterConfigurationRepositoryImpl(
+      localDataSource: sl<ConfigurationLocalDataSource>(),
+      printerDataSource: sl<PrinterDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<ReceiptConfigurationRepository>(
+    () => ReceiptConfigurationRepositoryImpl(
+      sl<ConfigurationLocalDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<ReceiptGenerator>(() => ReceiptGenerator());
+
+  // Configuration - Domain
+  sl.registerLazySingleton<GetPrinterConfigurationUseCase>(
+    () => GetPrinterConfigurationUseCase(
+      sl<PrinterConfigurationRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<DiscoverPrintersUseCase>(
+    () => DiscoverPrintersUseCase(sl<PrinterConfigurationRepository>()),
+  );
+  sl.registerLazySingleton<SavePrinterConfigurationUseCase>(
+    () => SavePrinterConfigurationUseCase(
+      sl<PrinterConfigurationRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<CheckPrinterConnectionUseCase>(
+    () => CheckPrinterConnectionUseCase(
+      sl<PrinterConfigurationRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<DisconnectPrinterUseCase>(
+    () => DisconnectPrinterUseCase(sl<PrinterConfigurationRepository>()),
+  );
+  sl.registerLazySingleton<ClearPrinterConfigurationUseCase>(
+    () => ClearPrinterConfigurationUseCase(
+      sl<PrinterConfigurationRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<GetReceiptSettingsUseCase>(
+    () => GetReceiptSettingsUseCase(sl<ReceiptConfigurationRepository>()),
+  );
+  sl.registerLazySingleton<SaveReceiptSettingsUseCase>(
+    () => SaveReceiptSettingsUseCase(sl<ReceiptConfigurationRepository>()),
+  );
+  sl.registerLazySingleton<PrintReceiptUseCase>(
+    () => PrintReceiptUseCase(
+      printerRepository: sl<PrinterConfigurationRepository>(),
+      receiptRepository: sl<ReceiptConfigurationRepository>(),
+      receiptGenerator: sl<ReceiptGenerator>(),
+    ),
+  );
+
+  // Configuration - Presentation
+  sl.registerFactory<PrinterConfigurationCubit>(
+    () => PrinterConfigurationCubit(
+      getPrinterConfigurationUseCase: sl<GetPrinterConfigurationUseCase>(),
+      discoverPrintersUseCase: sl<DiscoverPrintersUseCase>(),
+      savePrinterConfigurationUseCase: sl<SavePrinterConfigurationUseCase>(),
+      checkPrinterConnectionUseCase: sl<CheckPrinterConnectionUseCase>(),
+      disconnectPrinterUseCase: sl<DisconnectPrinterUseCase>(),
+      clearPrinterConfigurationUseCase:
+          sl<ClearPrinterConfigurationUseCase>(),
+    ),
+  );
+  sl.registerFactory<ReceiptConfigurationCubit>(
+    () => ReceiptConfigurationCubit(
+      getReceiptSettingsUseCase: sl<GetReceiptSettingsUseCase>(),
+      saveReceiptSettingsUseCase: sl<SaveReceiptSettingsUseCase>(),
     ),
   );
 

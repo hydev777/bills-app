@@ -3,6 +3,10 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:app/core/errors/failures.dart';
+import 'package:app/features/configuration/domain/entities/receipt_line.dart';
+import 'package:app/features/configuration/domain/entities/receipt_print_result.dart';
+import 'package:app/features/configuration/domain/entities/receipt_snapshot.dart';
+import 'package:app/features/configuration/domain/usecases/print_receipt_usecase.dart';
 import 'package:app/features/bills/domain/entities/bill_entity.dart';
 import 'package:app/features/bills/domain/usecases/create_sale_bill_usecase.dart';
 import 'package:app/features/products/domain/entities/item_entity.dart';
@@ -16,8 +20,10 @@ class SaleBloc extends Bloc<SaleEvent, SaleState> {
   SaleBloc({
     required GetItemsUseCase getItemsUseCase,
     required CreateSaleBillUseCase createSaleBillUseCase,
+    required PrintReceiptUseCase printReceiptUseCase,
   }) : _getItemsUseCase = getItemsUseCase,
        _createSaleBillUseCase = createSaleBillUseCase,
+       _printReceiptUseCase = printReceiptUseCase,
        super(const SaleInitial()) {
     on<SaleInitialized>(_onInitialized);
     on<SaleSearchQueryChanged>(_onSearchQueryChanged);
@@ -31,6 +37,7 @@ class SaleBloc extends Bloc<SaleEvent, SaleState> {
 
   final GetItemsUseCase _getItemsUseCase;
   final CreateSaleBillUseCase _createSaleBillUseCase;
+  final PrintReceiptUseCase _printReceiptUseCase;
 
   Future<void> _onInitialized(
     SaleInitialized event,
@@ -255,13 +262,19 @@ class SaleBloc extends Bloc<SaleEvent, SaleState> {
     );
 
     await result.when<Future<void>>(
-      success: (BillEntity _) async {
+      success: (BillEntity bill) async {
+        final printResult = await _printReceipt(
+          bill: bill,
+          current: current,
+        );
         final summary = SaleSuccessSummary(
           subtotal: current.subtotal,
           taxAmount: current.taxAmount,
           totalAmount: current.totalAmount,
           cashGiven: current.cashGiven,
           change: current.change,
+          printStatus: printResult.status,
+          printMessage: printResult.message,
         );
         emit(
           SaleLoaded(
@@ -300,6 +313,46 @@ class SaleBloc extends Bloc<SaleEvent, SaleState> {
   double _calculateChange(double totalAmount, double cashGiven) {
     final change = cashGiven - totalAmount;
     return change > 0 ? change : 0;
+  }
+
+  Future<ReceiptPrintResult> _printReceipt({
+    required BillEntity bill,
+    required SaleLoaded current,
+  }) async {
+    final snapshot = ReceiptSnapshot(
+      billId: bill.id,
+      publicId: bill.publicId,
+      createdAt: bill.createdAt,
+      lines: current.cart
+          .map(
+            (line) => ReceiptLine(
+              productName: line.item.name,
+              quantity: line.quantity,
+              unitPrice: line.unitPrice,
+              lineTotal: line.lineTotalWithTax,
+            ),
+          )
+          .toList(growable: false),
+      subtotal: current.subtotal,
+      taxAmount: current.taxAmount,
+      totalAmount: current.totalAmount,
+      cashReceived: current.cashGiven,
+      change: current.change,
+    );
+
+    final result = await _printReceiptUseCase(snapshot);
+    final failure = result.errorOrNull;
+    if (failure != null) {
+      return ReceiptPrintResult(
+        status: ReceiptPrintStatus.failed,
+        message: failure.displayMessage,
+      );
+    }
+    return result.valueOrNull ??
+        const ReceiptPrintResult(
+          status: ReceiptPrintStatus.failed,
+          message: 'No se pudo imprimir el recibo',
+        );
   }
 
   void _onSuccessDialogDismissed(

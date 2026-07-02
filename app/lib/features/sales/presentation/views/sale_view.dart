@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:app/features/configuration/domain/entities/receipt_print_result.dart';
 import 'package:app/features/sales/presentation/bloc/sale_bloc.dart';
 import 'package:app/features/sales/presentation/bloc/sale_event.dart';
 import 'package:app/features/sales/presentation/bloc/sale_state.dart';
@@ -58,7 +59,9 @@ class _SaleViewState extends State<SaleView> {
                   'ITBIS: ${summary.taxAmount.toStringAsFixed(2)}\n'
                   'Total: ${summary.totalAmount.toStringAsFixed(2)}\n'
                   'Efectivo: ${summary.cashGiven.toStringAsFixed(2)}\n'
-                  'Cambio: ${summary.change.toStringAsFixed(2)}',
+                  'Cambio: ${summary.change.toStringAsFixed(2)}\n\n'
+                  'Impresion: ${_printStatusLabel(summary.printStatus)}'
+                  '${summary.printMessage == null ? '' : '\n${summary.printMessage}'}',
                 ),
                 actions: [
                   TextButton(
@@ -185,5 +188,14 @@ class _SaleViewState extends State<SaleView> {
         ),
       ),
     );
+  }
+
+  String _printStatusLabel(ReceiptPrintStatus status) {
+    return switch (status) {
+      ReceiptPrintStatus.printed => 'Recibo impreso',
+      ReceiptPrintStatus.notConfigured => 'Impresora no configurada',
+      ReceiptPrintStatus.disconnected => 'Impresora desconectada',
+      ReceiptPrintStatus.failed => 'No se pudo imprimir',
+    };
   }
 }

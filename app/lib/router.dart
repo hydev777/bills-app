@@ -4,6 +4,7 @@ import 'package:app/features/bills/presentation/views/bills_view.dart';
 import 'package:app/features/clients/presentation/bloc/clients_bloc.dart';
 import 'package:app/features/clients/presentation/bloc/clients_event.dart';
 import 'package:app/features/clients/presentation/views/clients_view.dart';
+import 'package:app/features/configuration/presentation/views/configuration_view.dart';
 import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:app/features/auth/presentation/views/login_view.dart';
@@ -61,6 +62,10 @@ void initRouter() {
           (!_isLocalAdmin(authState))) {
         return '/home/facturas';
       }
+      if (location.startsWith('/home/configuracion') &&
+          (!_isLocalAdmin(authState))) {
+        return '/home/facturas';
+      }
       return null;
     },
     routes: [
@@ -108,6 +113,10 @@ void initRouter() {
                 path: 'categorias',
                 builder: (context, state) =>
                     const PlaceholderView(title: 'Categorias'),
+              ),
+              GoRoute(
+                path: 'configuracion',
+                builder: (context, state) => const ConfigurationView(),
               ),
               GoRoute(
                 path: 'usuarios',

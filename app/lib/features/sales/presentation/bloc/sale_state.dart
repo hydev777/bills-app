@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import 'package:app/features/configuration/domain/entities/receipt_print_result.dart';
 import 'package:app/features/products/domain/entities/item_entity.dart';
 import 'package:app/features/sales/domain/entities/sale_line_entity.dart';
 
@@ -26,6 +27,8 @@ class SaleSuccessSummary extends Equatable {
     required this.totalAmount,
     required this.cashGiven,
     required this.change,
+    required this.printStatus,
+    this.printMessage,
   });
 
   final double subtotal;
@@ -33,6 +36,8 @@ class SaleSuccessSummary extends Equatable {
   final double totalAmount;
   final double cashGiven;
   final double change;
+  final ReceiptPrintStatus printStatus;
+  final String? printMessage;
 
   @override
   List<Object?> get props => [
@@ -41,6 +46,8 @@ class SaleSuccessSummary extends Equatable {
     totalAmount,
     cashGiven,
     change,
+    printStatus,
+    printMessage,
   ];
 }
 

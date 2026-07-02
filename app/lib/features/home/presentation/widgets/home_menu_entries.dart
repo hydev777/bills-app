@@ -17,6 +17,11 @@ List<({IconData icon, String label, String path})> homeMenuEntries({
   ];
   if (session?.user.role.toLowerCase() == 'administrador') {
     entries.add((
+      icon: Icons.settings_outlined,
+      label: 'Configuracion',
+      path: '/home/configuracion',
+    ));
+    entries.add((
       icon: Icons.manage_accounts,
       label: 'Usuarios',
       path: '/home/usuarios',
